@@ -1,29 +1,56 @@
-NAME = webserver
+NAME = webserv
+
 CXX = c++
-CXXFLAGS = -Wall -Wextra -Werror -std=c++98 -I./include -MMD -MP
+CXXFLAGS = -Wall -Wextra -Werror -std=c++98
+CPPFLAGS = -Iinclude -MMD -MP
+
 RM = rm -rf
 
 SRC_DIR = src
-
-SRCS =	$(SRC_DIR)/main.cpp 
-
 OBJ_DIR = obj
-OBJ = $(SRCS:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
-DEP = $(OBJ:.o=.d)
+
+NETWORK_SRCS = \
+	$(SRC_DIR)/network/Server.cpp \
+	$(SRC_DIR)/network/Client.cpp \
+	$(SRC_DIR)/network/ServerManager.cpp
+
+PROTOCOL_SRCS = \
+	$(SRC_DIR)/PROTOCOL/Request.cpp \
+	$(SRC_DIR)/PROTOCOL/RequestParser.cpp \
+	$(SRC_DIR)/PROTOCOL/Response.cpp \
+	$(SRC_DIR)/PROTOCOL/ResponseBuilder.cpp \
+	$(SRC_DIR)/PROTOCOL/MimeTypes.cpp
+
+CORE_SRCS = \
+	$(SRC_DIR)/core/Router.cpp \
+	$(SRC_DIR)/core/FileManager.cpp \
+	$(SRC_DIR)/core/CGI.cpp \
+	$(SRC_DIR)/core/AutoIndex.cpp
+
+CONFIG_SRCS = \
+	$(SRC_DIR)/config/Config.cpp \
+	$(SRC_DIR)/config/ConfigParser.cpp
+
+SRCS = \
+	$(SRC_DIR)/main.cpp \
+	$(NETWORK_SRCS) \
+	$(PROTOCOL_SRCS) \
+	$(CORE_SRCS) \
+	$(CONFIG_SRCS)
+
+OBJS = $(SRCS:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
+DEPS = $(OBJS:.o=.d)
 
 all: $(NAME)
 
-$(NAME): $(OBJ) Makefile
-	$(CXX) $(CXXFLAGS) $(OBJ) -o $(NAME)
+$(NAME): $(OBJS)
+	$(CXX) $(CXXFLAGS) $(OBJS) -o $(NAME)
 
-$(OBJ_DIR):
-	mkdir -p $(OBJ_DIR)
-
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 	@mkdir -p $(dir $@)
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -c $< -o $@
 
--include $(DEP)
+-include $(DEPS)
 
 clean:
 	$(RM) $(OBJ_DIR)
@@ -33,7 +60,10 @@ fclean: clean
 
 re: fclean all
 
-run: all clean
+run: all
 	./$(NAME)
 
-.PHONY: all clean fclean re run
+debug: CXXFLAGS += -g3
+debug: re
+
+.PHONY: all clean fclean re run debug
