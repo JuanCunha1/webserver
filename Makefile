@@ -11,9 +11,10 @@ SRC_DIR = src
 OBJ_DIR = obj
 
 NETWORK_SRCS = \
+	$(SRC_DIR)/network/Socket.cpp \
 	$(SRC_DIR)/network/Server.cpp \
 	$(SRC_DIR)/network/Client.cpp \
-	$(SRC_DIR)/network/ServerManager.cpp
+	$(SRC_DIR)/network/ServerManager.cpp \
 
 PROTOCOL_SRCS = \
 	$(SRC_DIR)/PROTOCOL/Request.cpp \
