@@ -1,7 +1,9 @@
 #include "network/Client.hpp"
 
 
-Client::Client(int fd) : _fd(fd)
+
+Client::Client(int fd)
+	: _fd(fd), _lastActivity(std::time(NULL))
 {
 }
 
@@ -14,4 +16,86 @@ Client::~Client()
 int Client::getFd() const
 {
 	return _fd;
+}
+
+bool Client::receive()
+{
+	char buffer[4096];
+
+	int bytesRead = recv(
+		_fd,
+		buffer,
+		sizeof(buffer),
+		0
+	);
+
+	if (bytesRead > 0)
+	{
+		_requestBuffer.append(buffer, bytesRead);
+		_lastActivity = std::time(NULL);
+		return true;
+	}
+
+	if (bytesRead == 0)
+		return false;
+
+	if (errno == EAGAIN || errno == EWOULDBLOCK)
+		return true;
+
+	return false;
+}
+
+void Client::setResponse(const std::string &response)
+{
+	_responseBuffer = response;
+}
+
+bool Client::hasDataToSend() const
+{
+	return !_responseBuffer.empty();
+}
+
+bool Client::sendData()
+{
+	if (_responseBuffer.empty())
+		return true;
+
+	int bytesSent = send(
+		_fd,
+		_responseBuffer.c_str(),
+		_responseBuffer.size(),
+		0
+	);
+
+	if (bytesSent > 0)
+	{
+		_responseBuffer.erase(0, bytesSent);
+		_lastActivity = std::time(NULL);
+		return true;
+	}
+
+	if (bytesSent == -1)
+	{
+		if (errno == EAGAIN || errno == EWOULDBLOCK)
+			return true;
+
+		return false;
+	}
+
+	return false;
+}
+
+const std::string &Client::getRequest() const
+{
+	return _requestBuffer;
+}
+
+bool Client::hasDataToReceive() const
+{
+	return !_requestBuffer.empty();
+}
+
+bool Client::isTimedOut(std::time_t now, int timeout) const
+{
+	return (now - _lastActivity) >= timeout;
 }

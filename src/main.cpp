@@ -11,11 +11,7 @@ int main()
 		Server server(8080);
 
 		server.start();
-
-		while (true)
-		{
-			server.acceptClient();
-		}
+		server.run();
 	}
 	catch (const std::exception &e)
 	{

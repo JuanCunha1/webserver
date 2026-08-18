@@ -38,6 +38,7 @@
 *.exe
 *.out
 *.app
+webserv
 
 # Build directories
 build/

@@ -17,11 +17,11 @@ NETWORK_SRCS = \
 	$(SRC_DIR)/network/ServerManager.cpp \
 
 PROTOCOL_SRCS = \
-	$(SRC_DIR)/PROTOCOL/Request.cpp \
-	$(SRC_DIR)/PROTOCOL/RequestParser.cpp \
-	$(SRC_DIR)/PROTOCOL/Response.cpp \
-	$(SRC_DIR)/PROTOCOL/ResponseBuilder.cpp \
-	$(SRC_DIR)/PROTOCOL/MimeTypes.cpp
+	$(SRC_DIR)/protocol/Request.cpp \
+	$(SRC_DIR)/protocol/RequestParser.cpp \
+	$(SRC_DIR)/protocol/Response.cpp \
+	$(SRC_DIR)/protocol/ResponseBuilder.cpp \
+	$(SRC_DIR)/protocol/MimeTypes.cpp
 
 CORE_SRCS = \
 	$(SRC_DIR)/core/Router.cpp \

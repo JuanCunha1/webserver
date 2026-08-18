@@ -32,4 +32,5 @@ class Socket {
 
 		int		getFd() const;
 		void	setNonBlocking();
+		void setReuseAddr();
 };

@@ -13,19 +13,26 @@
 class Client;
 class Socket;
 
+static const int CLIENT_TIMEOUT = 60;
+
 class Server
 {
 	private:
 		Socket *_socket;
 		std::vector<Client *> _clients;
+		std::vector<struct pollfd> _pollFds;
 
 		Server(const Server &other);
 		Server &operator=(const Server &other);
 
+		void addClient();
+		void removeClient(int index);
 	public:
 		Server(int port);
 		~Server();
 
+		void checkTimeouts();
+
 		void start();
-		void acceptClient();
+		void run();
 };

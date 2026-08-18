@@ -35,8 +35,8 @@ void Socket::bindSocket()
 	address.sin_port = htons(_port);
 
 	if (bind(_fd,
-			 reinterpret_cast<struct sockaddr *>(&address),
-			 sizeof(address)) == -1)
+			reinterpret_cast<struct sockaddr *>(&address),
+			sizeof(address)) == -1)
 	{
 		std::cerr << "Error: bind() failed: "
 				  << std::strerror(errno) << std::endl;
@@ -61,7 +61,7 @@ int Socket::acceptConnection()
 
 	int clientFd = accept(
 		_fd,
-		(struct sockaddr *)&clientAddress,
+		reinterpret_cast<struct sockaddr *>(&clientAddress),
 		&clientAddressLength
 	);
 
@@ -90,4 +90,19 @@ void Socket::setNonBlocking()
 
 	if (fcntl(_fd, F_SETFL, flags | O_NONBLOCK) == -1)
 		throw std::runtime_error("fcntl(F_SETFL) failed");
+}
+
+void Socket::setReuseAddr()
+{
+	int option = 1;
+
+	if (setsockopt(
+			_fd,
+			SOL_SOCKET,
+			SO_REUSEADDR,
+			&option,
+			sizeof(option)) == -1)
+	{
+		throw std::runtime_error("setsockopt() failed");
+	}
 }
