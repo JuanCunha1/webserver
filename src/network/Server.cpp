@@ -61,30 +61,15 @@ void Server::run()
 				continue;
 
 			/*
-			 * Erro ou desconexao
-			 */
-			if (revents & (POLLERR | POLLHUP | POLLNVAL))
-			{
-				if (_pollFds[i].fd != _socket->getFd())
-				{
-					std::cout << "Client disconnected: "
-							  << _pollFds[i].fd
-							  << std::endl;
-
-					removeClient(i);
-					--i;
-					continue;
-				}
-
-				throw std::runtime_error("Server socket error");
-			}
-
-			/*
 			 * Listening socket
-			 * Novo cliente
 			 */
 			if (_pollFds[i].fd == _socket->getFd())
 			{
+				if (revents & (POLLERR | POLLHUP | POLLNVAL))
+					throw std::runtime_error(
+						"Server socket error"
+					);
+
 				if (revents & POLLIN)
 					addClient();
 
@@ -92,7 +77,24 @@ void Server::run()
 			}
 
 			/*
-			 * Procurar o Client correspondente ao fd
+			 * Client error / disconnect
+			 */
+			if (revents & (POLLERR | POLLHUP | POLLNVAL))
+			{
+				std::cout << "Client disconnected: "
+						  << _pollFds[i].fd
+						  << std::endl;
+
+				removeClient(i);
+
+				if (i > 0)
+					--i;
+
+				continue;
+			}
+
+			/*
+			 * Find Client
 			 */
 			Client *client = NULL;
 
@@ -109,7 +111,7 @@ void Server::run()
 				continue;
 
 			/*
-			 * Ler dados do cliente
+			 * READ
 			 */
 			if (revents & POLLIN)
 			{
@@ -120,36 +122,37 @@ void Server::run()
 							  << std::endl;
 
 					removeClient(i);
-					--i;
+
+					if (i > 0)
+						--i;
+
 					continue;
 				}
 
-				std::cout << "Request received:"
-						  << std::endl;
+				std::string request;
 
-				std::cout << client->getRequest()
-						  << std::endl;
+				if (client->extractRequest(request))
+				{
+					std::cout << "Request received:"
+							  << std::endl;
 
-				/*
-				 * Resposta temporaria para teste
-				 */
-				std::string response =
-					"HTTP/1.1 200 OK\r\n"
-					"Content-Length: 12\r\n"
-					"Content-Type: text/plain\r\n"
-					"\r\n"
-					"Hello World!";
+					std::cout << request << std::endl;
 
-				client->setResponse(response);
+					std::string response =
+						"HTTP/1.1 200 OK\r\n"
+						"Content-Length: 12\r\n"
+						"Content-Type: text/plain\r\n"
+						"\r\n"
+						"Hello World!";
 
-				/*
-				 * Ativar escrita no poll()
-				 */
-				_pollFds[i].events |= POLLOUT;
+					client->setResponse(response);
+
+					_pollFds[i].events |= POLLOUT;
+				}
 			}
 
 			/*
-			 * Enviar dados para o cliente
+			 * WRITE
 			 */
 			if (revents & POLLOUT)
 			{
@@ -160,21 +163,18 @@ void Server::run()
 							  << std::endl;
 
 					removeClient(i);
-					--i;
+
+					if (i > 0)
+						--i;
+
 					continue;
 				}
 
-				/*
-				 * Se nao ha mais dados para enviar,
-				 * deixamos de escutar POLLOUT.
-				 */
 				if (!client->hasDataToSend())
-				{
 					_pollFds[i].events &= ~POLLOUT;
-				}
 			}
 		}
-		
+
 		checkTimeouts();
 	}
 }

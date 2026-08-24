@@ -35,5 +35,7 @@ class Client
 		const std::string &getRequest() const;
 
 		bool isTimedOut(std::time_t now, int timeout) const;
+
+		bool extractRequest(std::string &request);
 };
 

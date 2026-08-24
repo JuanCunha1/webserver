@@ -45,6 +45,23 @@ bool Client::receive()
 	return false;
 }
 
+bool Client::extractRequest(std::string &request)
+{
+	std::string::size_type end =
+		_requestBuffer.find("\r\n\r\n");
+
+	if (end == std::string::npos)
+		return false;
+
+	end += 4;
+
+	request = _requestBuffer.substr(0, end);
+
+	_requestBuffer.erase(0, end);
+
+	return true;
+}
+
 void Client::setResponse(const std::string &response)
 {
 	_responseBuffer = response;
