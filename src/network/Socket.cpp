@@ -6,6 +6,26 @@ Socket::Socket(int port)
 {
 }
 
+Socket::Socket()
+	: _fd(-1), _port(-1)
+{
+}
+
+Socket::Socket(const Socket &other)
+	: _fd(other._fd), _port(other._port)
+{
+}
+
+Socket &Socket::operator=(const Socket &other)
+{
+	if (this != &other)
+	{
+		_fd = other._fd;
+		_port = other._port;
+	}
+	return *this;
+}
+
 Socket::~Socket()
 {
 	if (_fd != -1)

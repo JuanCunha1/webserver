@@ -1,10 +1,37 @@
 #include "network/Client.hpp"
 
-
-
 Client::Client(int fd)
 	: _fd(fd), _lastActivity(std::time(NULL))
+	, _requestBuffer(""), _responseBuffer("")
 {
+}
+
+Client::Client()
+	: _fd(-1), _lastActivity(std::time(NULL))
+	, _requestBuffer(""), _responseBuffer("")
+{
+}
+
+Client::Client(const Client &other)
+	: _fd(other._fd)
+	, _lastActivity(other._lastActivity)
+	, _requestBuffer(other._requestBuffer)
+	, _responseBuffer(other._responseBuffer)
+	
+{
+}
+
+Client &Client::operator=(const Client &other)
+{
+	if (this != &other)
+	{
+		_fd = other._fd;
+		_lastActivity = other._lastActivity;
+		_requestBuffer = other._requestBuffer;
+		_responseBuffer = other._responseBuffer;
+		
+	}
+	return *this;
 }
 
 Client::~Client()
@@ -81,24 +108,19 @@ bool Client::sendData()
 		_fd,
 		_responseBuffer.c_str(),
 		_responseBuffer.size(),
-		0
-	);
-
+		0);
 	if (bytesSent > 0)
 	{
 		_responseBuffer.erase(0, bytesSent);
 		_lastActivity = std::time(NULL);
 		return true;
 	}
-
 	if (bytesSent == -1)
 	{
 		if (errno == EAGAIN || errno == EWOULDBLOCK)
 			return true;
-
 		return false;
 	}
-
 	return false;
 }
 

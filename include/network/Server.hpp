@@ -18,10 +18,10 @@ static const int CLIENT_TIMEOUT = 60;
 class Server
 {
 	private:
-		Socket *_socket;
-		std::vector<Client *> _clients;
-		std::vector<struct pollfd> _pollFds;
-
+		Socket						*_socket;
+		std::vector<Client *>		_clients;
+		std::vector<struct pollfd>	_pollFds;
+		Server();
 		Server(const Server &other);
 		Server &operator=(const Server &other);
 

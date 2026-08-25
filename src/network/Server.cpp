@@ -1,7 +1,26 @@
 #include "network/Server.hpp"
+
 Server::Server(int port)
 	: _socket(new Socket(port))
+{ }
+
+Server::Server() : _socket(NULL)
+{ }
+
+Server::Server(const Server &other)
+	: _socket(other._socket)
+	, _clients(other._clients)
+	, _pollFds(other._pollFds)
+{ }
+Server &Server::operator=(const Server &other)
 {
+	if (this != &other)
+	{
+		_socket = other._socket;
+		_clients = other._clients;
+		_pollFds = other._pollFds;
+	}
+	return *this;
 }
 
 Server::~Server()

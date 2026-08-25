@@ -11,10 +11,12 @@ class Client
 {
 	private:
 		int			_fd;
+		std::time_t	_lastActivity;
 		std::string	_requestBuffer;
 		std::string	_responseBuffer;
-		std::time_t	_lastActivity;
 		
+		
+		Client();
 		Client(const Client &other);
 		Client &operator=(const Client &other);
 
