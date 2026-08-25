@@ -41,15 +41,11 @@ void Server::start()
 	_socket->setNonBlocking();
 	_socket->bindSocket();
 	_socket->listenSocket();
-
 	struct pollfd serverPollFd;
-
 	serverPollFd.fd = _socket->getFd();
 	serverPollFd.events = POLLIN;
 	serverPollFd.revents = 0;
-
 	_pollFds.push_back(serverPollFd);
-
 	std::cout << "Server listening on port 8080" << std::endl;
 }
 
@@ -62,140 +58,122 @@ void Server::run()
 			_pollFds.size(),
 			1000
 		);
-
 		if (result == -1)
 			throw std::runtime_error("poll() failed");
-
 		if (result == 0)
 		{
 			checkTimeouts();
 			continue;
 		}
-
 		for (size_t i = 0; i < _pollFds.size(); ++i)
 		{
-			short revents = _pollFds[i].revents;
-
-			if (revents == 0)
+			if (_pollFds[i].revents == 0)
 				continue;
-
-			/*
-			 * Listening socket
-			 */
-			if (_pollFds[i].fd == _socket->getFd())
-			{
-				if (revents & (POLLERR | POLLHUP | POLLNVAL))
-					throw std::runtime_error(
-						"Server socket error"
-					);
-
-				if (revents & POLLIN)
-					addClient();
-
-				continue;
-			}
-
-			/*
-			 * Client error / disconnect
-			 */
-			if (revents & (POLLERR | POLLHUP | POLLNVAL))
-			{
-				std::cout << "Client disconnected: "
-						  << _pollFds[i].fd
-						  << std::endl;
-
-				removeClient(i);
-
-				if (i > 0)
-					--i;
-
-				continue;
-			}
-
-			/*
-			 * Find Client
-			 */
-			Client *client = NULL;
-
-			for (size_t j = 0; j < _clients.size(); ++j)
-			{
-				if (_clients[j]->getFd() == _pollFds[i].fd)
-				{
-					client = _clients[j];
-					break;
-				}
-			}
-
-			if (client == NULL)
-				continue;
-
-			/*
-			 * READ
-			 */
-			if (revents & POLLIN)
-			{
-				if (!client->receive())
-				{
-					std::cout << "Client disconnected: "
-							  << client->getFd()
-							  << std::endl;
-
-					removeClient(i);
-
-					if (i > 0)
-						--i;
-
-					continue;
-				}
-
-				std::string request;
-
-				if (client->extractRequest(request))
-				{
-					std::cout << "Request received:"
-							  << std::endl;
-
-					std::cout << request << std::endl;
-
-					std::string response =
-						"HTTP/1.1 200 OK\r\n"
-						"Content-Length: 12\r\n"
-						"Content-Type: text/plain\r\n"
-						"\r\n"
-						"Hello World!";
-
-					client->setResponse(response);
-
-					_pollFds[i].events |= POLLOUT;
-				}
-			}
-
-			/*
-			 * WRITE
-			 */
-			if (revents & POLLOUT)
-			{
-				if (!client->sendData())
-				{
-					std::cout << "Send failed: "
-							  << client->getFd()
-							  << std::endl;
-
-					removeClient(i);
-
-					if (i > 0)
-						--i;
-
-					continue;
-				}
-
-				if (!client->hasDataToSend())
-					_pollFds[i].events &= ~POLLOUT;
-			}
+			handlePollEvent(i);
 		}
-
 		checkTimeouts();
 	}
+}
+
+void Server::handlePollEvent(size_t index)
+{
+	if (_pollFds[index].fd == _socket->getFd())
+	{
+		handleServerEvent(index);
+		return;
+	}
+	handleClientEvent(index);
+}
+
+void Server::handleServerEvent(size_t index)
+{
+	short revents = _pollFds[index].revents;
+
+	if (revents & (POLLERR | POLLHUP | POLLNVAL))
+		throw std::runtime_error(
+			"Server socket error"
+		);
+
+	if (revents & POLLIN)
+		addClient();
+}
+
+void Server::handleClientEvent(size_t index)
+{
+	short revents = _pollFds[index].revents;
+	if (revents & (POLLERR | POLLHUP | POLLNVAL))
+	{
+		std::cout << "Client disconnected: "
+				  << _pollFds[index].fd
+				  << std::endl;
+		removeClient(index);
+		return;
+	}
+	if (revents & POLLIN)
+	{
+		handleClientRead(index);
+		if (index >= _pollFds.size())
+			return;
+	}
+	if (revents & POLLOUT)
+		handleClientWrite(index);
+}
+
+void Server::handleClientRead(size_t index)
+{
+	Client *client = findClient(_pollFds[index].fd);
+	if (client == NULL)
+		return;
+	if (!client->receive())
+	{
+		std::cout << "Client disconnected: "
+				  << client->getFd()
+				  << std::endl;
+		removeClient(index);
+		return;
+	}
+	std::string request;
+	if (!client->extractRequest(request))
+		return;
+	std::cout << "Request received:"
+			  << std::endl;
+	std::cout << request << std::endl;
+	std::string response =
+		"HTTP/1.1 200 OK\r\n"
+		"Content-Length: 12\r\n"
+		"Content-Type: text/plain\r\n"
+		"\r\n"
+		"Hello World!";
+	client->setResponse(response);
+	_pollFds[index].events |= POLLOUT;
+}
+
+void Server::handleClientWrite(size_t index)
+{
+	Client *client = findClient(_pollFds[index].fd);
+	if (client == NULL)
+		return;
+	if (!client->sendData())
+	{
+		std::cout << "Send failed: "
+				  << client->getFd()
+				  << std::endl;
+		removeClient(index);
+		return;
+	}
+	if (!client->hasDataToSend())
+		_pollFds[index].events &= ~POLLOUT;
+}
+
+Client *Server::findClient(int fd)
+{
+	for (size_t i = 0; i < _clients.size(); ++i)
+	{
+		if (_clients[i]->getFd() == fd)
+			return _clients[i];
+	}
+
+	return NULL;
 }
 
 void Server::removeClient(int index)
