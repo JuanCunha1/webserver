@@ -221,7 +221,6 @@ void Server::addClient()
 void Server::checkTimeouts()
 {
 	std::time_t now = std::time(NULL);
-
 	for (size_t i = 1; i < _pollFds.size(); ++i)
 	{
 		for (size_t j = 0; j < _clients.size(); ++j)
@@ -233,11 +232,9 @@ void Server::checkTimeouts()
 					std::cout << "Client timeout: "
 							  << _pollFds[i].fd
 							  << std::endl;
-
 					removeClient(i);
 					--i;
 				}
-
 				break;
 			}
 		}

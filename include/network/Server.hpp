@@ -25,16 +25,16 @@ class Server
 		Server(const Server &other);
 		Server &operator=(const Server &other);
 
-		void addClient();
-		void removeClient(int index);
+		void	addClient();
+		void	removeClient(int index);
 
-		void handlePollEvent(size_t index);
-		void handleServerEvent(size_t index);
-		void handleClientEvent(size_t index);
-		void handleClientRead(size_t index);
-		void handleClientWrite(size_t index);
+		void	handlePollEvent(size_t index);
+		void	handleServerEvent(size_t index);
+		void	handleClientEvent(size_t index);
+		void	handleClientRead(size_t index);
+		void	handleClientWrite(size_t index);
 
-		Client *findClient(int fd);
+		Client	*findClient(int fd);
 	public:
 		Server(int port);
 		~Server();
