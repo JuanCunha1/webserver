@@ -1,7 +1,15 @@
 #pragma once
 
+#include <string>
+#include <vector>
+
 struct ConfigRedirections
 {
+    ConfigRedirections();
+    ConfigRedirections( const ConfigRedirections& original );
+    ConfigRedirections& operator=( const ConfigRedirections& rhs );
+    ~ConfigRedirections();
+
     // location {}
     int         returnCode;
     std::string returnUrl;
@@ -9,6 +17,11 @@ struct ConfigRedirections
 
 struct ErrorPages
 {
+    ErrorPages();
+    ErrorPages( const ErrorPages& original );
+    ErrorPages& operator=( const ErrorPages& rhs );
+    ~ErrorPages();
+
     // server {}
     std::vector<int>    errorCodes;
     std::string         errorPath;
@@ -16,6 +29,11 @@ struct ErrorPages
 
 struct ConfigLocation
 {
+    ConfigLocation();
+    ConfigLocation( const ConfigLocation& original );
+    ConfigLocation& operator=( const ConfigLocation& rhs );
+    ~ConfigLocation();
+
     // location {}
     std::string                     path;
     std::string                     locationRoot;
