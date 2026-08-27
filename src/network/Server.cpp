@@ -34,19 +34,56 @@ Server::~Server()
 	delete _socket;
 }
 
-void Server::start()
+void Server::start(const std::vector<int> &ports)
 {
-	_socket->create();
-	_socket->setReuseAddr();
-	_socket->setNonBlocking();
-	_socket->bindSocket();
-	_socket->listenSocket();
-	struct pollfd serverPollFd;
-	serverPollFd.fd = _socket->getFd();
-	serverPollFd.events = POLLIN;
-	serverPollFd.revents = 0;
-	_pollFds.push_back(serverPollFd);
-	std::cout << "Server listening on port 8080" << std::endl;
+	for (size_t i = 0; i < ports.size(); ++i)
+	{
+		Socket *socket = new Socket(ports[i]);
+
+		try
+		{
+			socket->create();
+			socket->setNonBlocking();
+			socket->setReuseAddr();
+			socket->bindSocket();
+			socket->listenSocket();
+
+			addListeningSocket(socket);
+		}
+		catch (...)
+		{
+			delete socket;
+			throw;
+		}
+	}
+
+	std::cout << "Server started with "
+			  << _sockets.size()
+			  << " listening socket(s)"
+			  << std::endl;
+}
+
+void Server::addListeningSocket(Socket *socket)
+{
+	struct pollfd pfd;
+
+	pfd.fd = socket->getFd();
+	pfd.events = POLLIN;
+	pfd.revents = 0;
+
+	_pollFds.push_back(pfd);
+	_sockets.push_back(socket);
+}
+
+Socket *Server::findListeningSocket(int fd)
+{
+	for (size_t i = 0; i < _sockets.size(); ++i)
+	{
+		if (_sockets[i]->getFd() == fd)
+			return _sockets[i];
+	}
+
+	return NULL;
 }
 
 void Server::run()
@@ -77,11 +114,14 @@ void Server::run()
 
 void Server::handlePollEvent(size_t index)
 {
-	if (_pollFds[index].fd == _socket->getFd())
+	int fd = _pollFds[index].fd;
+
+	if (findListeningSocket(fd) != NULL)
 	{
 		handleServerEvent(index);
 		return;
 	}
+
 	handleClientEvent(index);
 }
 
@@ -90,12 +130,10 @@ void Server::handleServerEvent(size_t index)
 	short revents = _pollFds[index].revents;
 
 	if (revents & (POLLERR | POLLHUP | POLLNVAL))
-		throw std::runtime_error(
-			"Server socket error"
-		);
+		throw std::runtime_error("Server socket error");
 
 	if (revents & POLLIN)
-		addClient();
+		addClient(index);
 }
 
 void Server::handleClientEvent(size_t index)
@@ -194,9 +232,9 @@ void Server::removeClient(int index)
 	_pollFds.erase(_pollFds.begin() + index);
 }
 
-void Server::addClient()
+void Server::addClient(size_t index)
 {
-	int clientFd = _socket->acceptConnection();
+	int clientFd = _sockets[index]->acceptConnection();
 
 	if (clientFd == -1)
 		return;

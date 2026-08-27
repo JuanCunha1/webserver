@@ -18,14 +18,14 @@ static const int CLIENT_TIMEOUT = 60;
 class Server
 {
 	private:
-		Socket						*_socket;
+		std::vector<Socket *>		_sockets;
 		std::vector<Client *>		_clients;
 		std::vector<struct pollfd>	_pollFds;
 		Server();
 		Server(const Server &other);
 		Server &operator=(const Server &other);
 
-		void	addClient();
+		void	addClient(size_t index);
 		void	removeClient(int index);
 
 		void	handlePollEvent(size_t index);
@@ -34,6 +34,8 @@ class Server
 		void	handleClientRead(size_t index);
 		void	handleClientWrite(size_t index);
 
+		void	addListeningSocket(Socket *socket);
+		Socket	*findListeningSocket(int fd);
 		Client	*findClient(int fd);
 	public:
 		Server(int port);
@@ -41,6 +43,6 @@ class Server
 
 		void checkTimeouts();
 
-		void start();
+		void start(const std::vector<int> &ports);
 		void run();
 };
