@@ -1,22 +1,20 @@
-#include "Request.hpp"
-
-Request() {
-	this->method = "";
-	this->uri = "";
-	this->query = "";
-	this->version = "";
-	this->headers = "";
-	this->body = "";
-
-	this->isComplete = false;
-	this->errorCode = 0;
+#include "../../include/protocol/Request.hpp"
+Request::Request() :
+	method(""),
+	uri(""),
+	query(""),
+	version(""),
+	body(""),
+	chunkSize(0),
+	isComplete(false),
+	errorCode(0) {
 }
 
-Request(const Request &src) {
+Request::Request(const Request &src) {
 	*this = src;
 }
 
-Request &operator=(const Request &rhs) {
+Request &Request::operator=(const Request &rhs) {
 	if (this != &rhs) {
 		this->method = rhs.method;
 		this->uri = rhs.uri;
@@ -24,10 +22,12 @@ Request &operator=(const Request &rhs) {
 		this->version = rhs.version;
 		this->headers = rhs.headers;
 		this->body = rhs.body;
+		this->chunkSize = rhs.chunkSize;
+		this->isComplete = rhs.isComplete;
+        this->errorCode = rhs.errorCode;
 	}
 	return (*this);
 }
 
-~Request() {
-
+Request::~Request() {
 }
