@@ -1,13 +1,8 @@
 #include "../include/protocol/RequestParser.hpp"
 #include "../include/protocol/Request.hpp"
-
-#include "../include/protocol/ResponseBuilder.hpp"
-#include "../include/protocol/Response.hpp"
-#include "../include/protocol/MimeTypes.hpp"
 #include <iostream>
 
 int main() {
-	//* --- REQUEST ---
 	std::string rawRequest = "GET /index.html HTTP/1.1\r\nContent-Type: Text/Plain\r\nContent-Length: 5\r\nHost: localhost:8080\r\n\r\nasdasdasasdasddasdasdasdasda\r\n";
 	//! Estaria bien recibir de un std::vector<char> para memoria dinamica automatica
 
@@ -17,14 +12,14 @@ int main() {
 	Request req;
 	
 	RequestParser::process(rawRequest, req, state, maxBodySize);
-
-	//* --- RESPONSE ---
-	Response res = ResponseBuilder::buildResponse(req, "index.html")
 	
-	std::cout << "Status code: " << res.getStatusCode() << std::endl;
-	std::cout << "Status Message: " << res.getStatusMessage() << std::endl;
-	res.printHeadersRes();
-	std::cout << "Body: " << res.getBody() << std::endl;
+	std::cout << "Method: " << req.getMethod() << std::endl;
+	std::cout << "URI: " << req.getUri() << std::endl;
+	std::cout << "Query: " << req.getQuery() << std::endl;
+	std::cout << "Version: " << req.getVersion() << std::endl;
+	req.printHeaders();
+	//std::cout << "Host: " << *(req.getHeader("host")) << std::endl;
+	std::cout << "Body: " << req.getBody() << std::endl;
 	
 	return (0);
 }
