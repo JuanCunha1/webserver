@@ -8,7 +8,7 @@ int main()
 {
 	try
 	{
-		Server server(8079);
+		Server server;
 		std::vector<int> port;
 		port.push_back(8080);
 		port.push_back(8081);

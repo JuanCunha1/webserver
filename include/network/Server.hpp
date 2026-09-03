@@ -21,7 +21,8 @@ class Server
 		std::vector<Socket *>		_sockets;
 		std::vector<Client *>		_clients;
 		std::vector<struct pollfd>	_pollFds;
-		Server();
+		
+		
 		Server(const Server &other);
 		Server &operator=(const Server &other);
 
@@ -38,7 +39,7 @@ class Server
 		Socket	*findListeningSocket(int fd);
 		Client	*findClient(int fd);
 	public:
-		Server(int port);
+		Server();
 		~Server();
 
 		void checkTimeouts();

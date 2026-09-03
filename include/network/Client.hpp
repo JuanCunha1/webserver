@@ -12,6 +12,7 @@ class Client
 {
 	private:
 		int			_fd;
+		int			_serverPort;
 		std::time_t	_lastActivity;
 		std::string	_requestBuffer;
 		std::string	_responseBuffer;
@@ -22,10 +23,11 @@ class Client
 		Client &operator=(const Client &other);
 
 	public:
-		Client(int fd);
+		Client(int fd, int serverPort);
 		~Client();
 
 		int getFd() const;
+		int getServerPort() const;
 
 		bool receive();
 		bool sendData();

@@ -1,13 +1,13 @@
 #include "network/Client.hpp"
 
-Client::Client(int fd)
-	: _fd(fd), _lastActivity(std::time(NULL))
+Client::Client(int fd, int serverPort)
+	: _fd(fd), _serverPort(serverPort), _lastActivity(std::time(NULL))
 	, _requestBuffer(""), _responseBuffer("")
 {
 }
 
 Client::Client()
-	: _fd(-1), _lastActivity(std::time(NULL))
+	: _fd(-1), _serverPort(-1), _lastActivity(std::time(NULL))
 	, _requestBuffer(""), _responseBuffer("")
 {
 }
@@ -38,6 +38,11 @@ Client::~Client()
 {
 	if (_fd != -1)
 		close(_fd);
+}
+
+int Client::getServerPort() const
+{
+	return _serverPort;
 }
 
 int Client::getFd() const

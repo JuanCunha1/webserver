@@ -81,10 +81,9 @@ int Socket::acceptConnection()
 
 	int clientFd = accept(
 		_fd,
-		reinterpret_cast<struct sockaddr *>(&clientAddress),
+		(struct sockaddr *)&clientAddress,
 		&clientAddressLength
 	);
-
 	if (clientFd == -1)
 	{
 		if (errno == EAGAIN || errno == EWOULDBLOCK)
@@ -101,6 +100,11 @@ int Socket::getFd() const
 	return _fd;
 }
 
+int Socket::getPort() const
+{
+	return _port;
+}
+
 void Socket::setNonBlocking()
 {
 	int flags = fcntl(_fd, F_GETFL, 0);
@@ -111,6 +115,7 @@ void Socket::setNonBlocking()
 	if (fcntl(_fd, F_SETFL, flags | O_NONBLOCK) == -1)
 		throw std::runtime_error("fcntl(F_SETFL) failed");
 }
+
 
 void Socket::setReuseAddr()
 {

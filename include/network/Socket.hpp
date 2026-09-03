@@ -30,6 +30,7 @@ class Socket {
 		void	listenSocket();
 		int		acceptConnection();
 
+		int		getPort() const;
 		int		getFd() const;
 		void	setNonBlocking();
 		void	setReuseAddr();

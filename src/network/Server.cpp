@@ -1,12 +1,13 @@
 #include "network/Server.hpp"
 
-Server::Server(int port)
-{
-	_sockets.push_back(new Socket(port));	
-}
+
 
 Server::Server()
-{ }
+    :	_sockets(),
+    	_clients(),
+		_pollFds()
+{
+}
 
 Server::Server(const Server &other)
 	: _sockets(other._sockets)
@@ -37,7 +38,6 @@ Server::~Server()
 		delete *it;
 	}
 }
-
 void Server::start(const std::vector<int> &ports)
 {
 	for (size_t i = 0; i < ports.size(); ++i)
@@ -47,8 +47,8 @@ void Server::start(const std::vector<int> &ports)
 		try
 		{
 			socket->create();
-			socket->setNonBlocking();
 			socket->setReuseAddr();
+			socket->setNonBlocking();
 			socket->bindSocket();
 			socket->listenSocket();
 
@@ -60,7 +60,6 @@ void Server::start(const std::vector<int> &ports)
 			throw;
 		}
 	}
-
 	std::cout << "Server started with "
 			  << _sockets.size()
 			  << " listening socket(s)"
@@ -120,24 +119,24 @@ void Server::handlePollEvent(size_t index)
 {
 	int fd = _pollFds[index].fd;
 
-	if (findListeningSocket(fd) != NULL)
+	if (_pollFds[index].revents & POLLIN)
 	{
-		handleServerEvent(index);
-		return;
-	}
+		for (size_t i = 0; i < _sockets.size(); ++i)
+		{
+			if (_sockets[i]->getFd() == fd)
+			{
+				handleServerEvent(index);
+				return;
+			}
+		}
 
-	handleClientEvent(index);
+		handleClientEvent(index);
+	}
 }
 
 void Server::handleServerEvent(size_t index)
 {
-	short revents = _pollFds[index].revents;
-
-	if (revents & (POLLERR | POLLHUP | POLLNVAL))
-		throw std::runtime_error("Server socket error");
-
-	if (revents & POLLIN)
-		addClient(index);
+	addClient(index);
 }
 
 void Server::handleClientEvent(size_t index)
@@ -181,9 +180,6 @@ void Server::handleClientRead(size_t index)
 			  << std::endl;
 	std::cout << request << std::endl;
 	std::string response =
-		"HTTP/1.1 200 OK\r\n"
-		"Content-Length: 12\r\n"
-		"Content-Type: text/plain\r\n"
 		"\r\n"
 		"Hello World!";
 	client->setResponse(response);
@@ -235,7 +231,6 @@ void Server::removeClient(int index)
 
 	_pollFds.erase(_pollFds.begin() + index);
 }
-
 void Server::addClient(size_t index)
 {
 	int clientFd = _sockets[index]->acceptConnection();
@@ -243,7 +238,10 @@ void Server::addClient(size_t index)
 	if (clientFd == -1)
 		return;
 
-	Client *client = new Client(clientFd);
+	Client *client = new Client(
+		clientFd,
+		_sockets[index]->getPort()
+	);
 
 	_clients.push_back(client);
 
@@ -254,18 +252,16 @@ void Server::addClient(size_t index)
 	clientPollFd.revents = 0;
 
 	_pollFds.push_back(clientPollFd);
-
-	std::cout << "Client connected: "
-			  << clientFd
-			  << std::endl;
 }
 
 void Server::checkTimeouts()
 {
 	std::time_t now = std::time(NULL);
-	for (size_t i = 1; i < _pollFds.size(); ++i)
+	size_t pollSize = _pollFds.size();
+	size_t clientSize = _clients.size();
+	for (size_t i = 1; i < pollSize; ++i)
 	{
-		for (size_t j = 0; j < _clients.size(); ++j)
+		for (size_t j = 0; j < clientSize; ++j)
 		{
 			if (_clients[j]->getFd() == _pollFds[i].fd)
 			{
