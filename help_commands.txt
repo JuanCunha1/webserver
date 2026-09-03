@@ -1,0 +1,11 @@
+check open ports
+    ss -ltnp
+
+start nc in localhost to test conection
+    nc localhost 8080
+
+send a curl to localhost
+    curl http://localhost:8081
+
+delete all the process that are using the name webserv
+    pkill webserv

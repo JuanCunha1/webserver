@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <cerrno>
 #include <ctime>
+#include <iostream>
 
 class Client
 {

@@ -1,14 +1,15 @@
 #include "network/Server.hpp"
 
 Server::Server(int port)
-	: _socket(new Socket(port))
-{ }
+{
+	_sockets.push_back(new Socket(port));	
+}
 
-Server::Server() : _socket(NULL)
+Server::Server()
 { }
 
 Server::Server(const Server &other)
-	: _socket(other._socket)
+	: _sockets(other._sockets)
 	, _clients(other._clients)
 	, _pollFds(other._pollFds)
 { }
@@ -16,7 +17,7 @@ Server &Server::operator=(const Server &other)
 {
 	if (this != &other)
 	{
-		_socket = other._socket;
+		_sockets = other._sockets;
 		_clients = other._clients;
 		_pollFds = other._pollFds;
 	}
@@ -30,8 +31,11 @@ Server::~Server()
 	{
 		delete *it;
 	}
-
-	delete _socket;
+	for (std::vector<Socket *>::iterator it = _sockets.begin();
+		 it != _sockets.end(); ++it)
+	{
+		delete *it;
+	}
 }
 
 void Server::start(const std::vector<int> &ports)
