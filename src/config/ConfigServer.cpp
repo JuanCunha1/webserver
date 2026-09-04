@@ -76,6 +76,7 @@ ConfigLocation& ConfigLocation::operator=( const ConfigLocation& rhs )
         this->returnRedirections = rhs.returnRedirections;
         this->cgiPath = rhs.cgiPath;
         this->cgiExtension = rhs.cgiExtension;
+        this->uploadStore = rhs.uploadStore;
     }
     return (*this);
 }

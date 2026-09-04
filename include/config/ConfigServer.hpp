@@ -43,6 +43,7 @@ struct ConfigLocation
     std::vector<ConfigRedirections> returnRedirections;
     std::vector<std::string>        cgiPath;
     std::vector<std::string>        cgiExtension;
+    std::string                     uploadStore;
 };
 
 struct ConfigServer // struct public by default. class private by default
