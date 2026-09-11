@@ -38,6 +38,7 @@ struct ConfigLocation
     std::string                     path;
     std::string                     locationRoot;
     bool                            autoindex; // on (true)/off (false)
+    bool                            isAutoindexDefined;
     std::string                     indexFile;
     std::vector<std::string>        allowedMethods;
     std::vector<ConfigRedirections> returnRedirections;
@@ -62,6 +63,8 @@ struct ConfigServer // struct public by default. class private by default
         std::string                 indexFile;
         unsigned long               clientMaxBodySize;
         std::vector<ErrorPages>     errorPages;
+        bool                        autoindex; // on (true)/off (false)
+        bool                        isAutoindexDefined;
         // location {}
         std::vector<ConfigLocation> locations;
 };

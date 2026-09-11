@@ -57,6 +57,11 @@ ErrorPages::~ErrorPages()
 ConfigLocation::ConfigLocation()
 {
     this->autoindex = false;
+    this->isAutoindexDefined = false;
+    //sentinel values (valores centinela) for avoiding repetitions in these var
+    this->locationRoot = "";
+    this->indexFile = "";
+    this->uploadStore = "";
 }
 
 ConfigLocation::ConfigLocation( const ConfigLocation& original )
@@ -71,6 +76,7 @@ ConfigLocation& ConfigLocation::operator=( const ConfigLocation& rhs )
         this->path = rhs.path;
         this->locationRoot = rhs.locationRoot;
         this->autoindex = rhs.autoindex;
+        this->isAutoindexDefined = rhs.isAutoindexDefined;
         this->indexFile = rhs.indexFile;
         this->allowedMethods = rhs.allowedMethods;
         this->returnRedirections = rhs.returnRedirections;
@@ -89,6 +95,18 @@ ConfigLocation::~ConfigLocation()
 // Canonical form ConfigServer
 ConfigServer::ConfigServer()
 {
+    //sentinel values (valores centinela) for avoiding repetitions in these var
+    this->port = -1;
+    this->host = "";
+    this->root = "";
+    this->indexFile = "";
+    this->clientMaxBodySize = 0;
+    this->autoindex = false;
+    this->isAutoindexDefined = false;
+}
+/*
+ConfigServer::ConfigServer()
+{
     // NGINX default configuration
     this->port = 80;
     this->host = "127.0.0.1";
@@ -96,6 +114,7 @@ ConfigServer::ConfigServer()
     this->indexFile = "index.html";
     this->clientMaxBodySize = 1000000; // 1 MB
 }
+*/
 
 ConfigServer::ConfigServer( const ConfigServer& original )
 {
@@ -114,6 +133,8 @@ ConfigServer& ConfigServer::operator=( const ConfigServer& rhs )
         this->clientMaxBodySize = rhs.clientMaxBodySize;
         this->errorPages = rhs.errorPages;
         this->locations = rhs.locations;
+        this->autoindex = rhs.autoindex;
+        this->isAutoindexDefined = rhs.isAutoindexDefined;
     }
     return(*this);
 }
