@@ -1,18 +1,18 @@
 #include "network/Socket.hpp"
 
 
-Socket::Socket(int port)
-	: _fd(-1), _port(port)
+Socket::Socket(int port, const std::string &host)
+	: _fd(-1), _port(port), _host(host)
 {
 }
 
 Socket::Socket()
-	: _fd(-1), _port(-1)
+	: _fd(-1), _port(-1), _host("127.0.0.1")
 {
 }
 
 Socket::Socket(const Socket &other)
-	: _fd(other._fd), _port(other._port)
+	: _fd(other._fd), _port(other._port), _host(other._host)
 {
 }
 
@@ -22,6 +22,7 @@ Socket &Socket::operator=(const Socket &other)
 	{
 		_fd = other._fd;
 		_port = other._port;
+		_host = other._host;
 	}
 	return *this;
 }
@@ -51,7 +52,7 @@ void Socket::bindSocket()
 	std::memset(&address, 0, sizeof(address));
 
 	address.sin_family = AF_INET;
-	address.sin_addr.s_addr = INADDR_ANY;
+	address.sin_addr.s_addr = inet_addr(_host.c_str());;
 	address.sin_port = htons(_port);
 
 	if (bind(_fd,

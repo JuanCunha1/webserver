@@ -86,7 +86,6 @@ bool Client::extractRequest(std::string &request)
 	end += 4;
 
 	request = _requestBuffer.substr(0, end);
-
 	_requestBuffer.erase(0, end);
 
 	return true;

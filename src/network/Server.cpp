@@ -42,7 +42,7 @@ void Server::start(const std::vector<int> &ports)
 {
 	for (size_t i = 0; i < ports.size(); ++i)
 	{
-		Socket *socket = new Socket(ports[i]);
+		Socket *socket = new Socket(ports[i], "127.0.0.1");
 
 		try
 		{

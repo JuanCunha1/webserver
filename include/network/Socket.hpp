@@ -17,12 +17,14 @@ class Socket {
 	private:
 		int _fd;
 		int	_port;
+		std::string _host;
+
 		Socket(void);
 		Socket(const Socket &other);
 		Socket &operator=(const Socket &other);
 
 	public:
-		Socket(int port);
+		Socket(int port, const std::string &host);
 		~Socket();
 
 		void	create();
