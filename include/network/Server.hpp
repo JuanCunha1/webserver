@@ -13,7 +13,7 @@
 class Client;
 class Socket;
 
-static const int CLIENT_TIMEOUT = 60;
+static const int CLIENT_TIMEOUT = 5;
 
 class Server
 {
@@ -27,7 +27,7 @@ class Server
 		Server &operator=(const Server &other);
 
 		void	addClient(size_t index);
-		void	removeClient(int index);
+		void	removeClient(size_t index);
 
 		void	handlePollEvent(size_t index);
 		void	handleServerEvent(size_t index);

@@ -105,11 +105,22 @@ void Server::run()
 			checkTimeouts();
 			continue;
 		}
-		for (size_t i = 0; i < _pollFds.size(); ++i)
+		size_t i = 0;
+
+		while (i < _pollFds.size())
 		{
 			if (_pollFds[i].revents == 0)
+			{
+				++i;
 				continue;
+			}
+
+			size_t oldSize = _pollFds.size();
+
 			handlePollEvent(i);
+
+			if (_pollFds.size() == oldSize)
+				++i;
 		}
 		checkTimeouts();
 	}
@@ -118,8 +129,15 @@ void Server::run()
 void Server::handlePollEvent(size_t index)
 {
 	int fd = _pollFds[index].fd;
+	short revents = _pollFds[index].revents;
 
-	if (_pollFds[index].revents & POLLIN)
+	if (revents & (POLLERR | POLLHUP | POLLNVAL))
+	{
+		removeClient(index);
+		return;
+	}
+
+	if (revents & POLLIN)
 	{
 		for (size_t i = 0; i < _sockets.size(); ++i)
 		{
@@ -130,7 +148,15 @@ void Server::handlePollEvent(size_t index)
 			}
 		}
 
-		handleClientEvent(index);
+		handleClientRead(index);
+
+		if (index >= _pollFds.size())
+			return;
+	}
+
+	if (revents & POLLOUT)
+	{
+		handleClientWrite(index);
 	}
 }
 
@@ -141,7 +167,11 @@ void Server::handleServerEvent(size_t index)
 
 void Server::handleClientEvent(size_t index)
 {
+	if (index >= _pollFds.size())
+		return;
+
 	short revents = _pollFds[index].revents;
+
 	if (revents & (POLLERR | POLLHUP | POLLNVAL))
 	{
 		std::cout << "Client disconnected: "
@@ -159,48 +189,70 @@ void Server::handleClientEvent(size_t index)
 	if (revents & POLLOUT)
 		handleClientWrite(index);
 }
-
 void Server::handleClientRead(size_t index)
 {
 	Client *client = findClient(_pollFds[index].fd);
 	if (client == NULL)
-		return;
-	if (!client->receive())
 	{
-		std::cout << "Client disconnected: "
-				  << client->getFd()
-				  << std::endl;
+		removeClient(index);
+		return;
+	}
+	int result = client->receive();
+
+	if (result == 0)
+	{
 		removeClient(index);
 		return;
 	}
 	std::string request;
-	if (!client->extractRequest(request))
-		return;
-	std::cout << "Request received:"
-			  << std::endl;
-	std::cout << request << std::endl;
-	std::string response =
-		"\r\n"
-		"Hello World!";
-	client->setResponse(response);
-	_pollFds[index].events |= POLLOUT;
+
+	if (client->extractRequest(request))
+	{
+
+		if (client->getServerPort() == 8080)
+		{
+			client->setResponse(
+				"HTTP/1.1 200 OK\r\n"
+				"Content-Length: 13\r\n"
+				"Content-Type: text/plain\r\n"
+				"Connection: close\r\n"
+				"\r\n"
+				"Hello 8080!\r\n"
+			);
+		}
+		else if (client->getServerPort() == 8081)
+		{
+			client->setResponse(
+				"HTTP/1.1 200 OK\r\n"
+				"Content-Length: 13\r\n"
+				"Content-Type: text/plain\r\n"
+				"Connection: close\r\n"
+				"\r\n"
+				"Hello 8081!\r\n"
+			);
+		}
+
+		_pollFds[index].events = POLLIN | POLLOUT;
+	}
 }
 
 void Server::handleClientWrite(size_t index)
 {
 	Client *client = findClient(_pollFds[index].fd);
 	if (client == NULL)
-		return;
-	if (!client->sendData())
 	{
-		std::cout << "Send failed: "
-				  << client->getFd()
-				  << std::endl;
 		removeClient(index);
 		return;
 	}
+	
+	client->sendData();
+	
 	if (!client->hasDataToSend())
-		_pollFds[index].events &= ~POLLOUT;
+	{
+		removeClient(index);
+		return;
+	}
+	_pollFds[index].events = POLLIN | POLLOUT;
 }
 
 Client *Server::findClient(int fd)
@@ -214,8 +266,11 @@ Client *Server::findClient(int fd)
 	return NULL;
 }
 
-void Server::removeClient(int index)
+void Server::removeClient(size_t index)
 {
+	if (index >= _pollFds.size())
+		return;
+
 	int fd = _pollFds[index].fd;
 
 	for (std::vector<Client *>::iterator it = _clients.begin();
@@ -231,6 +286,7 @@ void Server::removeClient(int index)
 
 	_pollFds.erase(_pollFds.begin() + index);
 }
+
 void Server::addClient(size_t index)
 {
 	int clientFd = _sockets[index]->acceptConnection();
@@ -257,22 +313,28 @@ void Server::addClient(size_t index)
 void Server::checkTimeouts()
 {
 	std::time_t now = std::time(NULL);
-	size_t pollSize = _pollFds.size();
-	size_t clientSize = _clients.size();
-	for (size_t i = 1; i < pollSize; ++i)
+
+	size_t i = 0;
+
+	while (i < _clients.size())
 	{
-		for (size_t j = 0; j < clientSize; ++j)
+		if (!_clients[i]->isTimedOut(now, CLIENT_TIMEOUT))
 		{
-			if (_clients[j]->getFd() == _pollFds[i].fd)
+			++i;
+			continue;
+		}
+
+		int fd = _clients[i]->getFd();
+
+		std::cout << "Client timeout: "
+				  << fd
+				  << std::endl;
+
+		for (size_t j = 0; j < _pollFds.size(); ++j)
+		{
+			if (_pollFds[j].fd == fd)
 			{
-				if (_clients[j]->isTimedOut(now, CLIENT_TIMEOUT))
-				{
-					std::cout << "Client timeout: "
-							  << _pollFds[i].fd
-							  << std::endl;
-					removeClient(i);
-					--i;
-				}
+				removeClient(j);
 				break;
 			}
 		}
