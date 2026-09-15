@@ -10,6 +10,7 @@ void MimeTypes::init() {
 		_types[".png"]  = "image/png";
 		_types[".jpg"]  = "image/jpeg";
 		_types[".txt"]  = "text/plain";
+		//* Podria añadir más formatos
 	}
 }
 

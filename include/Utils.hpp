@@ -13,6 +13,7 @@ private:
 public:
 	template <typename T>
 	static std::string toString(const T& value);
-};
 
+	static bool isAllUpper(const std::string& str);
+};
 #include "Utils.tpp"

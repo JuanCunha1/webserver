@@ -1,106 +1,44 @@
 #include "../../include/protocol/ResponseBuilder.hpp"
 #include "../../include/protocol/MimeTypes.hpp"
-#include "./Utils.hpp"
+#include "../../include/Utils.hpp"
 
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <sys/stat.h>
+#include <unistd.h>
 
 //! Funciones que debere hacer
 //isCgiRequest();
 //handleCgi();
 
-std::string readFile(const std::string& path) {
-	std::ifstream file(path.c_str(), std::ios::in | std::ios::binary);
-	if (!file.is_open())
-		return "";
-	
-	std::ostringstream ss;
-	ss << file.rdbuf();
-	return (ss.str());
-}
-
-Response ResponseBuilder::handleGet(const Request &req, const std::string &path) {
-	(void)req;
+Response ResponseBuilder::buildErrorResponse(int code, const std::string &msg) {
 	Response res;
-	
-	if (isCgiRequest(path)) {
-		return (handleCgi(path));
-	}
+	std::string defaultBody = "<html><body><h1>" + Utils::toString(code) + " " + msg + "</h1></body></html>";
 
-	struct stat statbuf;
-	if (stat(path.c_str(), &statbuf) == -1) {
-		if (errno == ENOENT) {
-			//* o hacer un buildErrorResponse(404, "Not Found");
-			//* o mirar tema excepciones
-			res.setStatusCode(404);
-			res.setStatusMessage("Not found");
-		}
-		if (errno == EACCES) {
-			res.setStatusCode(403);
-			res.setStatusMessage("Forbidden");
-		}
-		res.setStatusCode(500);
-		res.setStatusMessage("Internal server error");
-	}
+	res.setStatusCode(code);
+	res.setStatusMessage(msg);
+	res.setHeader("Content-Type", "text/html");
+	res.setHeader("Content-Length", Utils::toString(defaultBody.size()));
+	res.setHeader("Connection", "close");
+	res.setBody(defaultBody);
 
-	if (S_ISDIR(statbuf.st_mode)) {
-		//! Hacer comprobación de si existe index.html o si tengo activo el autoindex
-		std::string indexPath = path + "/index.html"; // Asegúrate de formatear bien las barras
-		struct stat indexStat;
-		if (stat(indexPath.c_str(), &indexStat) == 0 && S_ISREG(indexStat.st_mode)) {
-			return serveStaticFile(indexPath);
-		}
-		
-		// Si autoindex está apagado o no hay index
-		return buildErrorResponse(403, "Forbidden");
-	}
-
-	if (S_ISREG(statbuf.st_mode)) {
-		if (access(path.c_str(), R_OK) == -1) {
-			res.setStatusCode(403);
-			res.setStatusMessage("Forbidden");
-		}
-		res.setStatusCode(200);
-		res.setStatusMessage("OK");
-		res.setHeader("Content-Type", MimeTypes::getType(filePath));
-		res.setHeader("Content-Length", Utils::toString(readFile(path).size()));
-		res.setBody(readFile(path));
-		//Tambien me faltaria añadir los headers pero no se cuales poner
-	}
-	//! Otros casos no soportados
-	res.setStatusCode(403);
-	res.setStatusMessage("Forbidden");
+	return (res);
 }
 
-/*
-Response ResponseBuilder::handlePost(const Request &req, const std::string &path) {
-	//* Comprobaciones
-	if (isCgiRequest(path) = true) {
-		handleCgi(path);
+bool ResponseBuilder::shouldCloseConnection(const Request &req, int statusCode) {
+	const std::string* conn = req.getHeader("Connection");
+	if (conn && *conn == "close") {
+		return (true);
 	}
-
-
-	//* Ejecución
-
-}
-
-Response ResponseBuilder::handleDelete(const Request &req, const std::string &path) {
-	//* Comprobaciones
-	if (isCgiRequest(path) = true) {
-		handleCgi(path);
+	if (req.getVersion() == "HTTP/1.0" && !(conn != NULL && *conn == "keep-alive")) {
+		return (true);
 	}
-
-
-	//* Ejecución
-
+	if (statusCode == 400 || statusCode == 413 || statusCode == 500 || statusCode == 501) {
+		return (true);
+	}
+	return (false);
 }
-
-Response ResponseBuilder::handleError(const Request &req, int errorCode) {
-
-}
-
-*/
 
 Response ResponseBuilder::buildResponse(const Request &req, const std::string &path) {
 	//* Comprobamos que metodo es, si no es ninguno codigo de error...
@@ -108,12 +46,11 @@ Response ResponseBuilder::buildResponse(const Request &req, const std::string &p
 
 	if (method == "GET") {
 		return (handleGet(req, path));
-	} /*else if (method == "POST") {
+	} else if (method == "POST") {
 		return (handlePost(req, path));
 	} else if (method == "DELETE") {
 		return (handleDelete(req, path));
-	} else {
+	}  else {
 		return (handleError(req, 501)); // 501 Not Implemented
 	}
-		*/
 }
