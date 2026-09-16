@@ -1,71 +1,58 @@
-NAME = webserv
+NAME        = ./eje
+TEST_NAME   = ./parser_test
 
-CXX = c++
-CXXFLAGS = -Wall -Wextra -Werror -std=c++98
-CPPFLAGS = -Iinclude -MMD -MP
+CXX         = c++
+CXXFLAGS    = -Wall -Wextra -Werror -std=c++98 -MMD -MP -g
 
+# Archivos comunes que necesitan tanto el servidor como los tests
+COMMON_SRCS = src/protocol/RequestParser.cpp \
+              src/protocol/Request.cpp \
+              src/protocol/Response.cpp \
+              src/protocol/ResponseBuilder.cpp \
+              src/protocol/handlers/GetHandler.cpp \
+              src/protocol/handlers/PostHandler.cpp \
+              src/protocol/handlers/DeleteHandler.cpp \
+              src/protocol/handlers/ErrorHandler.cpp \
+			  src/protocol/handlers/CgiHandler.cpp \
+              src/protocol/MimeTypes.cpp \
+			  src/Utils.cpp
 
-RM = rm -rf
+# Fuentes del servidor normal
+MAIN_SRC    = src/main.cpp
+FILES       = $(MAIN_SRC) $(COMMON_SRCS)
+OBJ         = $(FILES:.cpp=.o)
 
-SRC_DIR = src
-OBJ_DIR = obj
+# Fuentes del arnés de tests
+TEST_SRC    = src/parser_test.cpp
+TEST_FILES  = $(TEST_SRC) $(COMMON_SRCS)
+TEST_OBJ    = $(TEST_FILES:.cpp=.o)
 
-NETWORK_SRCS = \
-	$(SRC_DIR)/network/Socket.cpp \
-	$(SRC_DIR)/network/Server.cpp \
-	$(SRC_DIR)/network/Client.cpp \
-	$(SRC_DIR)/network/ServerManager.cpp \
-
-PROTOCOL_SRCS = \
-	$(SRC_DIR)/protocol/Request.cpp \
-	$(SRC_DIR)/protocol/RequestParser.cpp \
-	$(SRC_DIR)/protocol/Response.cpp \
-	$(SRC_DIR)/protocol/ResponseBuilder.cpp \
-	$(SRC_DIR)/protocol/MimeTypes.cpp
-
-CORE_SRCS = \
-	$(SRC_DIR)/core/Router.cpp \
-	$(SRC_DIR)/core/FileManager.cpp \
-	$(SRC_DIR)/core/CGI.cpp \
-	$(SRC_DIR)/core/AutoIndex.cpp
-
-CONFIG_SRCS = \
-	$(SRC_DIR)/config/Config.cpp \
-	$(SRC_DIR)/config/ConfigParser.cpp
-
-SRCS = \
-	$(SRC_DIR)/main.cpp \
-	$(NETWORK_SRCS) \
-	$(PROTOCOL_SRCS) \
-	$(CORE_SRCS) \
-	$(CONFIG_SRCS)
-
-OBJS = $(SRCS:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
-DEPS = $(OBJS:.o=.d)
+# Lista completa de dependencias generadas por -MMD
+DEPS        = $(OBJ:.o=.d) $(TEST_OBJ:.o=.d)
 
 all: $(NAME)
 
-$(NAME): $(OBJS)
-	$(CXX) $(CXXFLAGS) $(OBJS) -o $(NAME)
+$(NAME): $(OBJ)
+	$(CXX) $(CXXFLAGS) $(OBJ) -o $(NAME)
 
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
-	@mkdir -p $(dir $@)
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -c $< -o $@
+# Regla para compilar y ejecutar los tests directamente
+test: $(TEST_NAME)
+	@$(TEST_NAME)
 
--include $(DEPS)
+$(TEST_NAME): $(TEST_OBJ)
+	$(CXX) $(CXXFLAGS) $(TEST_OBJ) -o $(TEST_NAME)
+
+%.o: %.cpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 clean:
-	$(RM) $(OBJ_DIR)
+	rm -f $(OBJ) $(TEST_OBJ) $(DEPS)
 
 fclean: clean
-	$(RM) $(NAME)
+	rm -f $(NAME) $(TEST_NAME)
 
 re: fclean all
 
-run: all
-	./$(NAME)
+-include $(DEPS)
 
-debug: CXXFLAGS += -g3
-debug: re
-
-.PHONY: all clean fclean re run debug
+.PHONY: all clean fclean re test
