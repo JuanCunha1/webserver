@@ -5,9 +5,6 @@
 
 class ResponseBuilder {
 	private:
-
-		//!Igual deberia añadir un puntero a response o algo así??
-
 		static Response handleGet(const Request &req, const std::string &path);
 		static Response handlePost(const Request &req, const std::string &path);
 		static Response handleDelete(const Request &req, const std::string &path);

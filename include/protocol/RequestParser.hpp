@@ -42,15 +42,15 @@ class RequestParser {
 		static void processHeadersState(std::string &buffer, Request &req, State &state, size_t maxBodySize);
 		static void processContentLengthState(std::string &buffer, Request &req, State &state);
 
-		// --- Para parseRequestLine ---
+		//* Para parseRequestLine
 		static void validateMethod(const std::string &method);
 		static void validateVersion(const std::string &version);
 		static void parseUri(const std::string &rawUri, Request &req);
 		
-		// --- Para parseHeaderLine ---
+		//* Para parseHeaderLine
 		static bool handleDuplicateHeader(const std::string &key, const std::string &value, Request &req);
 
-		// --- Para processChunked ---
+		//* Para processChunked
 		static void processChunkSizeState(std::string &buffer, Request &req, State &state, size_t maxBodySize);
 		static void processChunkDataState(std::string &buffer, Request &req, State &state);
 		static void processChunkTrailerState(std::string &buffer, Request &req, State &state);

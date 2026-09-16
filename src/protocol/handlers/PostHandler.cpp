@@ -140,18 +140,18 @@ static std::string resolveUniqueFilename(const std::string &dir, const std::stri
 	std::string baseName = originalFilename;
 	std::string extension = "";
 
+	//* Comprobar punto no sea el primer caracter como .ignore
 	size_t dotPos = originalFilename.find_last_of('.');
-	// Asegurarse de que el punto no sea el primer carácter (ej: .gitignore)
 	if (dotPos != std::string::npos && dotPos != 0) {
 		baseName = originalFilename.substr(0, dotPos);
-		extension = originalFilename.substr(dotPos); // incluye el punto: ".png"
+		extension = originalFilename.substr(dotPos);
 	}
 
 	std::string candidateName = originalFilename;
 	std::string fullPath = dir + candidateName;
 	int counter = 1;
 
-	// Si ya existe, añade un sufijo numérico incremental: _1, _2, etc.
+	//* Si ya existe por ejemplo _1
 	while (fileExists(fullPath)) {
 		std::ostringstream ss;
 		ss << baseName << "_" << counter << extension;
@@ -170,7 +170,6 @@ static bool saveFileToDisk(const std::string &dir, std::string &filename, const 
 		cleanDir += "/";
 	}
 
-	// Calcula el nombre disponible sin colisión y actualiza el parámetro por referencia
 	filename = resolveUniqueFilename(cleanDir, filename);
 	std::string fullPath = cleanDir + filename;
 
@@ -204,24 +203,22 @@ static bool parseAndSaveMultipart(const std::string &body, const std::string &bo
 
 	while (currentPos != std::string::npos) {
 		currentPos += boundary.length();
-		// Si después del boundary encontramos "--", indica fin del cuerpo multipart (--boundary--)
+		//* Si encuentra "--" indica fin del body
 		if (currentPos + 2 <= body.size() && body.substr(currentPos, 2) == "--") {
 			break;
 		}
-		// Saltar el CRLF inicial de la parte
+		//* Saltar el CRLF inicial
 		if (currentPos + 2 <= body.size() && body.substr(currentPos, 2) == "\r\n") {
 			currentPos += 2;
 		}
 
-		// 1. Localizar las cabeceras internas de la parte
 		size_t headerEnd = body.find("\r\n\r\n", currentPos);
 		if (headerEnd == std::string::npos) {
-			break; // Formato inválido o truncado
+			break;
 		}
 
 		std::string partHeaders = body.substr(currentPos, headerEnd - currentPos);
 
-		// 2. Localizar inicio y fin del contenido binario
 		size_t dataStart = headerEnd + 4; // Saltar "\r\n\r\n"
 		size_t nextBoundary = body.find(boundary, dataStart);
 		if (nextBoundary == std::string::npos) {
@@ -236,19 +233,14 @@ static bool parseAndSaveMultipart(const std::string &body, const std::string &bo
 		std::string content = body.substr(dataStart, dataEnd - dataStart);
 		std::string filename = extractSanitizedFilename(partHeaders);
 		std::string fieldName = extractFieldName(partHeaders);
-		// 3. Diferenciar archivo vs campo de texto
 		if (!filename.empty()) {
-			// Caso A: Es un archivo con nombre válido
 			if (!saveFileToDisk(uploadDir, filename, content)) {
 				return (false);
 			}
 			savedFilenames.push_back(filename);
 		} else if (!fieldName.empty()) {
-			// Caso B: Es un campo de formulario normal (ej: usuario="pepito")
 			formFields[fieldName] = content;
 		}
-
-		// 4. Continuar con el siguiente boundary
 		currentPos = nextBoundary;
 	}
 	return (!savedFilenames.empty() || !formFields.empty());
@@ -319,8 +311,7 @@ Response ResponseBuilder::handlePost(const Request &req, const std::string &path
 		}
 
 		Response res;
-		// Si se crearon ficheros, el estado HTTP estándar es 201 Created
-		// Si solo se enviaron campos de texto, suele responderse 200 OK
+
 		if (!savedFilenames.empty()) {
 			res.setStatusCode(201);
 			res.setStatusMessage("Created");
@@ -336,7 +327,6 @@ Response ResponseBuilder::handlePost(const Request &req, const std::string &path
 			res.setStatusMessage("OK");
 		}
 
-		// Construir cuerpo de respuesta informativo
 		std::string msg = "<html><body><h1>Procesado correctamente</h1>";
 
 		if (!savedFilenames.empty()) {
@@ -375,7 +365,6 @@ Response ResponseBuilder::handlePost(const Request &req, const std::string &path
 		res.setStatusCode(200);
 		res.setStatusMessage("OK");
 
-		// Construir cuerpo de respuesta informativo
 		std::string msg = "<html><body><h1>Formulario procesado correctamente</h1>";
 		
 		if (!formFields.empty()) {

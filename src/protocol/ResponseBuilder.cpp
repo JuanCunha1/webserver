@@ -51,6 +51,6 @@ Response ResponseBuilder::buildResponse(const Request &req, const std::string &p
 	} else if (method == "DELETE") {
 		return (handleDelete(req, path));
 	}  else {
-		return (handleError(req, 501)); // 501 Not Implemented
+		return (handleError(req, 501));
 	}
 }

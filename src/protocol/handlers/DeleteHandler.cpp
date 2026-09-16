@@ -5,14 +5,14 @@
 #include <cerrno>
 #include <string>
 
-// Función auxiliar para obtener la ruta del directorio que contiene al archivo
+//* Función auxiliar para obtener la ruta del directorio que contiene al archivo
 static std::string getParentDirectory(const std::string &path) {
 	size_t lastSlash = path.find_last_of('/');
 	if (lastSlash == std::string::npos) {
-		return ("."); // Directorio actual de trabajo
+		return (".");
 	}
 	if (lastSlash == 0) {
-		return ("/"); // Raíz del sistema
+		return ("/");
 	}
 	return (path.substr(0, lastSlash));
 }

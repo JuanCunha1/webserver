@@ -132,9 +132,7 @@ bool CgiHandler::initCgi(const Request &req, const std::string &scriptPath, cons
     return (true);
 }
 
-// -----------------------------------------------------------------------------
-// Fase 2: Operaciones de E/S No Bloqueantes
-// -----------------------------------------------------------------------------
+//* Operaciones de E/S No Bloqueantes
 void CgiHandler::writeToCgi() {
     if (_pipeIn == -1 || _inputBuffer.empty()) {
         return;
@@ -178,9 +176,7 @@ void CgiHandler::readFromCgi() {
     }
 }
 
-// -----------------------------------------------------------------------------
-// Fase 3: Construcción de la Respuesta HTTP (Refactorizada)
-// -----------------------------------------------------------------------------
+//* Construcción de la Respuesta HTTP (Refactorizada)
 bool CgiHandler::splitOutput(std::string &headersPart, std::string &bodyPart) {
     size_t headerEnd = _outputBuffer.find("\r\n\r\n");
     size_t delimiterLen = 4;
@@ -264,9 +260,7 @@ Response CgiHandler::buildCgiResponse() {
     return (res);
 }
 
-// -----------------------------------------------------------------------------
-// Utilidades de Argumentos y Variables de Entorno (C++98 Puro)
-// -----------------------------------------------------------------------------
+//* Utilidades de Argumentos y Variables de Entorno (C++98 Puro)
 char** CgiHandler::buildArgv(const std::string &scriptPath, const std::string &cgiBinary) {
     char **argv = new char*[3];
 
