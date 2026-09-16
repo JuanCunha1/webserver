@@ -8,10 +8,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-//! Funciones que debere hacer
-//isCgiRequest();
-//handleCgi();
-
 Response ResponseBuilder::buildErrorResponse(int code, const std::string &msg) {
 	Response res;
 	std::string defaultBody = "<html><body><h1>" + Utils::toString(code) + " " + msg + "</h1></body></html>";
