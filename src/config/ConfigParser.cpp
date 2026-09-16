@@ -1,9 +1,8 @@
-#include "ConfigParser.hpp"
+#include "config/ConfigParser.hpp"
 #include <iostream>    // std::cout, std::cerr
 
 ConfigParser::ConfigParser()
 {
-
 }
 
 ConfigParser::ConfigParser( const ConfigParser& original )
@@ -37,6 +36,7 @@ void ConfigParser::parseFile(const std::string& filename)
 
     if (!_openFile(file, filename))
     {
+        std::cout << "1" << std::endl;
         return; 
     }
     _readFileAndTokenize(file);

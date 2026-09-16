@@ -9,6 +9,8 @@
 #include <stdexcept>
 #include <vector>
 #include <poll.h>
+#include "protocol/Request.hpp"
+#include "protocol/RequestParser.hpp"
 
 class Client;
 class Socket;
@@ -21,6 +23,8 @@ class Server
 		std::vector<Socket *>		_sockets;
 		std::vector<Client *>		_clients;
 		std::vector<struct pollfd>	_pollFds;
+		Request _request;
+		RequestParser::State _state;
 		
 		
 		Server(const Server &other);

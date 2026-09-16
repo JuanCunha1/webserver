@@ -1,6 +1,8 @@
-#include "../../include/protocol/RequestParser.hpp"
-#include "../../include/protocol/HttpException.hpp"
-#include "../../include/Utils.hpp"
+#include "protocol/RequestParser.hpp"
+#include "protocol/HttpException.hpp"
+#include "Utils.hpp"
+
+#include <cerrno>
 
 static bool isValidHeaderName(const std::string &name);
 

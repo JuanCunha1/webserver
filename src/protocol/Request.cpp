@@ -1,4 +1,4 @@
-#include "../../include/protocol/Request.hpp"
+#include "protocol/Request.hpp"
 Request::Request() :
 	method(""),
 	uri(""),

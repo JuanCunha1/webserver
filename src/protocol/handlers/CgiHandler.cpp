@@ -1,7 +1,7 @@
-#include "CgiHandler.hpp"
-#include "../../../include/protocol/Response.hpp"
-#include "../../../include/protocol/Request.hpp"
-#include "../../../include/Utils.hpp"
+#include "protocol/CgiHandler.hpp"
+#include "protocol/Response.hpp"
+#include "protocol/Request.hpp"
+#include "Utils.hpp"
 
 #include <iostream>
 #include <cstdlib>

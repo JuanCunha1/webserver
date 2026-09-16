@@ -1,6 +1,6 @@
-#include "../../include/protocol/Response.hpp"
-#include "../../include/protocol/Request.hpp"
-#include "../../include/protocol/HttpException.hpp"
+#include "protocol/Response.hpp"
+#include "protocol/Request.hpp"
+#include "protocol/HttpException.hpp"
 
 Response::Response() :
 	//! No es lo correcto hardcodear la version

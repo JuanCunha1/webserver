@@ -1,6 +1,6 @@
-#include "../../include/protocol/ResponseBuilder.hpp"
-#include "../../include/protocol/MimeTypes.hpp"
-#include "../../include/Utils.hpp"
+#include "protocol/ResponseBuilder.hpp"
+#include "protocol/MimeTypes.hpp"
+#include "Utils.hpp"
 
 #include <fstream>
 #include <sstream>

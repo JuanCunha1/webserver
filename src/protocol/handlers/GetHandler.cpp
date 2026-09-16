@@ -1,6 +1,6 @@
-#include "../../../include/protocol/ResponseBuilder.hpp"
-#include "../../../include/protocol/MimeTypes.hpp"
-#include "../../../include/Utils.hpp"
+#include "protocol/ResponseBuilder.hpp"
+#include "protocol/MimeTypes.hpp"
+#include "Utils.hpp"
 
 #include <fstream>
 #include <sstream>
@@ -41,9 +41,10 @@ Response ResponseBuilder::serveStaticFile(const Request &req, const std::string 
 
 Response ResponseBuilder::handleGet(const Request &req, const std::string &path) {	
 	//! He visto que la comprobación de si es CGI la deberia hacer desde el .conf
+	/*
 	if (isCgiRequest(path)) {
-		return (CgiHandler::execute(req, path)); 
-	}
+		return (CgiHandler::initCgi(req, path)); 
+	}*/
 
 	struct stat statbuf;
 	if (stat(path.c_str(), &statbuf) == -1) {

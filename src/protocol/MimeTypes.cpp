@@ -1,4 +1,4 @@
-#include "../../include/protocol/MimeTypes.hpp"
+#include "protocol/MimeTypes.hpp"
 
 std::map<std::string, std::string> MimeTypes::_types;
 

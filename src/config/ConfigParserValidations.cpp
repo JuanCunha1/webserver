@@ -1,15 +1,15 @@
-#include "ConfigParser.hpp"
+#include "config/ConfigParser.hpp"
 #include <iostream>    // std::cerr
 #include <sys/stat.h>  // stat()
 
-// NGINX: Warning program must execute with sudo if 1-1023 (priviliged ports)
+// NGINX: 1-1023 (priviliged ports)
 void ConfigParser::_warnPrivilegedPorts()
 {
     for (size_t i = 0; i < _servers.size(); ++i)
     {
         if (_servers[i].port > 0 && _servers[i].port < 1024)
         {
-            std::cerr << "Warning: Server configured on privileged port " << _servers[i].port << ". Requires root/sudo execution." << std::endl;
+            std::cerr << "Warning: Server configured on privileged port " << _servers[i].port << std::endl;
         }
     }
 }
@@ -21,12 +21,13 @@ bool ConfigParser::_validateDirectoriesExist()
 
     for (size_t i = 0; i < _servers.size(); ++i)
     {
+        
         if (!_servers[i].root.empty() && stat(_servers[i].root.c_str(), &info) != 0)
         {
             std::cerr << "Error: Server root directory '" << _servers[i].root << "' does not exist." << std::endl;
             return (false);
         }
-
+        
         for (size_t j = 0; j < _servers[i].locations.size(); ++j)
         {
             ConfigLocation& loc = _servers[i].locations[j];
@@ -110,7 +111,7 @@ bool ConfigParser::_validateSemantic()
         if (_servers[i].clientMaxBodySize == 0)
             _servers[i].clientMaxBodySize = 1000000; // 1 MB
         if (_servers[i].root == "")
-            _servers[i].root = "/var/www/html"; // O la carpeta pública que uséis
+            _servers[i].root = "www"; // O la carpeta pública que uséis
         if (_servers[i].indexFile == "")
             _servers[i].indexFile = "index.html";
         if (_servers[i].port < 1 || _servers[i].port > 65535)

@@ -1,4 +1,4 @@
-#include "ConfigParser.hpp"
+#include "config/ConfigParser.hpp"
 #include <iostream>    // std::cerr
 
 bool ConfigParser::_bracesChecker()

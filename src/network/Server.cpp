@@ -5,7 +5,9 @@
 Server::Server()
 	:	_sockets(),
 		_clients(),
-		_pollFds()
+		_pollFds(),
+		_request(),
+		_state(RequestParser::REQUEST_LINE)
 {
 }
 
@@ -13,6 +15,8 @@ Server::Server(const Server &other)
 	: _sockets(other._sockets)
 	, _clients(other._clients)
 	, _pollFds(other._pollFds)
+	, _request(other._request)
+	, _state(other._state)
 { }
 Server &Server::operator=(const Server &other)
 {
@@ -21,6 +25,8 @@ Server &Server::operator=(const Server &other)
 		_sockets = other._sockets;
 		_clients = other._clients;
 		_pollFds = other._pollFds;
+		_request = other._request;
+		_state = other._state;
 	}
 	return *this;
 }
@@ -63,6 +69,7 @@ void Server::start(const std::vector<int> &ports)
 	std::cout << "Server started with "
 			  << _sockets.size()
 			  << " listening socket(s)"
+			  << ports[0]
 			  << std::endl;
 }
 
@@ -211,7 +218,9 @@ void Server::handleClientRead(size_t index)
 	}
 
 	int result = client->receive();
-
+	std::cout << "Received data from client fd: "
+			  << client->getFd()
+			  << std::endl;
 	if (result == 0)
 	{
 		removeClient(index);
@@ -224,9 +233,17 @@ void Server::handleClientRead(size_t index)
 	std::string request;
 
 	if (!client->extractRequest(request))
+	{
 		return;
+	}
+	// Passing buffer to request parser
+	//process(request, &_request, &_state, clientMaxbodySize);
 
-	// Por enquanto apenas teste
+
+
+	//std::cout << request << std::endl;
+	// test response for now, you can replace this with your actual response generation logic
+	
 	client->setResponse(createTestResponse());
 
 	_pollFds[index].events |= POLLOUT;

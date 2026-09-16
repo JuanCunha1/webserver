@@ -1,4 +1,4 @@
-#include "ConfigParser.hpp"
+#include "config/ConfigParser.hpp"
 #include <iostream>    // std::cerr
 #include <cstdlib>     // std::atoi, std::strtoul
 #include <cctype>      // std::isdigit

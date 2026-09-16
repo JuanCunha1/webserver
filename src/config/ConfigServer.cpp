@@ -1,4 +1,4 @@
-#include "ConfigServer.hpp"
+#include "config/ConfigServer.hpp"
 
 // Canonical form ConfigRedirections
 ConfigRedirections::ConfigRedirections()

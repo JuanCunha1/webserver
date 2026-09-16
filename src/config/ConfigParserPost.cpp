@@ -1,4 +1,4 @@
-#include "ConfigParser.hpp"
+#include "config/ConfigParser.hpp"
 
 // NGINX: CGI extensions always be like .etc (ex. php -> .php)
 void ConfigParser::_normalizeCGIExtensions()
