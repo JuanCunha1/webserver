@@ -117,7 +117,7 @@ bool Client::sendData()
 		_lastActivity = std::time(NULL);
 		return true;
 	}
-	if (bytesSent == -1)
+	if (bytesSent <= -1)
 	{
 		if (errno == EAGAIN || errno == EWOULDBLOCK)
 			return true;

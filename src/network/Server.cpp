@@ -3,8 +3,8 @@
 
 
 Server::Server()
-    :	_sockets(),
-    	_clients(),
+	:	_sockets(),
+		_clients(),
 		_pollFds()
 {
 }
@@ -189,14 +189,27 @@ void Server::handleClientEvent(size_t index)
 	if (revents & POLLOUT)
 		handleClientWrite(index);
 }
+
+std::string createTestResponse()
+{
+	return "HTTP/1.1 200 OK\r\n"
+		   "Content-Length: 10\r\n"
+		   "Content-Type: text/plain\r\n"
+		   "Connection: keep-alive\r\n"
+		   "\r\n"
+		   "Hello, World!\r\n";
+}
+
 void Server::handleClientRead(size_t index)
 {
 	Client *client = findClient(_pollFds[index].fd);
+
 	if (client == NULL)
 	{
 		removeClient(index);
 		return;
 	}
+
 	int result = client->receive();
 
 	if (result == 0)
@@ -204,38 +217,45 @@ void Server::handleClientRead(size_t index)
 		removeClient(index);
 		return;
 	}
+
+	if (result < 0)
+		return;
+
 	std::string request;
 
-	if (client->extractRequest(request))
-	{
+	if (!client->extractRequest(request))
+		return;
 
-		if (client->getServerPort() == 8080)
-		{
-			client->setResponse(
-				"HTTP/1.1 200 OK\r\n"
-				"Content-Length: 13\r\n"
-				"Content-Type: text/plain\r\n"
-				"Connection: close\r\n"
-				"\r\n"
-				"Hello 8080!\r\n"
-			);
-		}
-		else if (client->getServerPort() == 8081)
-		{
-			client->setResponse(
-				"HTTP/1.1 200 OK\r\n"
-				"Content-Length: 13\r\n"
-				"Content-Type: text/plain\r\n"
-				"Connection: close\r\n"
-				"\r\n"
-				"Hello 8081!\r\n"
-			);
-		}
+	// Por enquanto apenas teste
+	client->setResponse(createTestResponse());
 
-		_pollFds[index].events = POLLIN | POLLOUT;
-	}
+	_pollFds[index].events |= POLLOUT;
 }
+/*void Server::handleClientWrite(size_t index)
+{
+	Client *client = findClient(_pollFds[index].fd);
 
+	if (client == NULL)
+	{
+		removeClient(index);
+		return;
+	}
+	int result = client->sendResponse();
+
+	if (result < 0)
+	{
+		removeClient(index);
+		return;
+	}
+
+	if (client->responseComplete())
+	{
+		removeClient(index);
+		return;
+	}
+
+	_pollFds[index].events |= POLLOUT;
+}*/
 void Server::handleClientWrite(size_t index)
 {
 	Client *client = findClient(_pollFds[index].fd);

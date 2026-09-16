@@ -8,4 +8,4 @@ send a curl to localhost
     curl http://localhost:8081
 
 delete all the process that are using the name webserv
-    pkill webserv
+    pkill -9 webserv
