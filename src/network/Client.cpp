@@ -50,7 +50,7 @@ int Client::getFd() const
 	return _fd;
 }
 
-bool Client::receive()
+int Client::receive()
 {
 	char buffer[4096];
 
@@ -65,16 +65,16 @@ bool Client::receive()
 	{
 		_requestBuffer.append(buffer, bytesRead);
 		_lastActivity = std::time(NULL);
-		return true;
+		return bytesRead;
 	}
 
 	if (bytesRead == 0)
-		return false;
+		return 0;
 
 	if (errno == EAGAIN || errno == EWOULDBLOCK)
-		return true;
+		return -1;
 
-	return false;
+	return -2;
 }
 
 bool Client::extractRequest(std::string &request)
@@ -101,29 +101,34 @@ bool Client::hasDataToSend() const
 	return !_responseBuffer.empty();
 }
 
-bool Client::sendData()
+int Client::sendData()
 {
 	if (_responseBuffer.empty())
-		return true;
+		return 0;
 
-	int bytesSent = send(
+	ssize_t bytesSent = send(
 		_fd,
 		_responseBuffer.c_str(),
 		_responseBuffer.size(),
-		0);
+		0
+	);
+
 	if (bytesSent > 0)
 	{
 		_responseBuffer.erase(0, bytesSent);
 		_lastActivity = std::time(NULL);
-		return true;
+		return static_cast<int>(bytesSent);
 	}
-	if (bytesSent <= -1)
+
+	if (bytesSent == -1)
 	{
 		if (errno == EAGAIN || errno == EWOULDBLOCK)
-			return true;
-		return false;
+			return 0;
+
+		return -1;
 	}
-	return false;
+
+	return -1;
 }
 
 const std::string &Client::getRequest() const

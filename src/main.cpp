@@ -16,12 +16,8 @@ int main(int argc, char *argv[])
 	{
 		ConfigParser parser;
 		parser.parseFile(argv[1]);
-		std::vector<ConfigServer> serverConfigs = parser.getServers();
-		Server server;
-		std::vector<int> port;
-
-		port.push_back(serverConfigs[0].port);
-		server.start(port);
+		Server server(parser.getServers());
+		server.start();
 		server.run();
 	}
 	catch (const std::exception &e)

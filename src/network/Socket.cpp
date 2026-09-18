@@ -4,6 +4,7 @@
 Socket::Socket(int port, const std::string &host)
 	: _fd(-1), _port(port), _host(host)
 {
+	std::cout << "host: " << _host << std::endl;
 }
 
 Socket::Socket()
@@ -83,8 +84,7 @@ int Socket::acceptConnection()
 	int clientFd = accept(
 		_fd,
 		(struct sockaddr *)&clientAddress,
-		&clientAddressLength
-	);
+		&clientAddressLength);
 	if (clientFd == -1)
 	{
 		if (errno == EAGAIN || errno == EWOULDBLOCK)

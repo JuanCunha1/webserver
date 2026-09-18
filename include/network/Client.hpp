@@ -29,8 +29,8 @@ class Client
 		int getFd() const;
 		int getServerPort() const;
 
-		bool receive();
-		bool sendData();
+		int receive();
+		int sendData();
 
 		void setResponse(const std::string &response);
 
