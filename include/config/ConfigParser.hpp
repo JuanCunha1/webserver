@@ -1,5 +1,5 @@
 #pragma once
-#include "ConfigServer.hpp"
+#include "config/ConfigServer.hpp"
 
 #include <vector>
 #include <string>
@@ -19,7 +19,6 @@ class ConfigParser
         ConfigParser& operator=( const ConfigParser& rhs );
         ~ConfigParser();
         const std::vector<ConfigServer>& getServers() const;
-
         void parseFile(const std::string& file);
 
     private:
@@ -35,7 +34,7 @@ class ConfigParser
 
         // ConfigParserTokensBlocks.cpp
         bool    _parseTokens();
-        bool    _parseServerBlock(ConfigServer& server);
+        bool    _parseServerBlock(ConfigServer& server, std::vector<int>& ports);
         bool    _parseLocationBlock(ConfigLocation& location);
         bool    _duplicateErrorMessage(const std::string& directive);
 
