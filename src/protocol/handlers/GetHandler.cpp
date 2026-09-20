@@ -1,5 +1,6 @@
 #include "protocol/ResponseBuilder.hpp"
 #include "protocol/MimeTypes.hpp"
+#include "protocol/CgiHandler.hpp"
 #include "Utils.hpp"
 
 #include <fstream>
@@ -39,17 +40,75 @@ Response ResponseBuilder::serveStaticFile(const Request &req, const std::string 
 	return (res);
 }
 
+Response ResponseBuilder::handleGet(const Request &req, const std::string &path, const ConfigLocation &loc) {
+    struct stat statbuf;
+
+    // 1. Comprobar existencia del recurso
+    if (stat(path.c_str(), &statbuf) == -1) {
+        if (errno == ENOENT) {
+            return (buildErrorResponse(404, "Not Found"));
+        }
+        if (errno == EACCES) {
+            return (buildErrorResponse(403, "Forbidden"));
+        }
+        return (buildErrorResponse(500, "Internal Server Error"));
+    }
+
+    // 2. Si es Directorio
+    if (S_ISDIR(statbuf.st_mode)) {
+        std::string indexPath = path;
+        if (!indexPath.empty() && indexPath[indexPath.size() - 1] != '/') {
+            indexPath += "/";
+        }
+        indexPath += loc.indexFile.empty() ? "index.html" : loc.indexFile;
+
+        struct stat indexStat;
+        if (stat(indexPath.c_str(), &indexStat) == 0 && S_ISREG(indexStat.st_mode)) {
+            return (serveStaticFile(req, indexPath));
+        }
+
+        if (loc.autoindex) {
+            // return (generateAutoindex(req, path));
+        }
+        return (buildErrorResponse(403, "Forbidden"));
+    }
+
+    // 3. Si es Archivo Regular
+    if (S_ISREG(statbuf.st_mode)) {
+        std::string cgiBinary = getCgiBinary(path, loc);
+
+        // Si cgiBinary no está vacío, es una petición CGI configurada
+        if (!cgiBinary.empty()) {
+            // El script debe tener permisos de lectura
+            if (access(path.c_str(), R_OK) == -1) {
+                return (buildErrorResponse(403, "Forbidden"));
+            }
+            // El binario ejecutable (ej: /usr/bin/python3) debe existir y poder ejecutarse
+            if (access(cgiBinary.c_str(), X_OK) == -1) {
+                return (buildErrorResponse(500, "Internal Server Error"));
+            }
+            
+            // Le pasas la petición, la ruta del script y la ruta del binario
+            return (CgiHandler::initCgi(req, path, cgiBinary));
+        }
+
+        // Si no es CGI, se sirve como estático
+        if (access(path.c_str(), R_OK) == -1) {
+            return (buildErrorResponse(403, "Forbidden"));
+        }
+        return (serveStaticFile(req, path));
+    }
+
+    return (buildErrorResponse(403, "Forbidden"));
+}
+
+/*
 Response ResponseBuilder::handleGet(const Request &req, const std::string &path) {	
-	//! He visto que la comprobación de si es CGI la deberia hacer desde el .conf
-	/*
-	if (isCgiRequest(path)) {
-		return (CgiHandler::initCgi(req, path)); 
-	}*/
 
 	struct stat statbuf;
 	if (stat(path.c_str(), &statbuf) == -1) {
 		if (errno == ENOENT) {
-			//* igual mirar tema excepciones
+			// igual mirar tema excepciones
 			return (buildErrorResponse(404, "Not Found"));
 		}
 		if (errno == EACCES) {
@@ -70,6 +129,13 @@ Response ResponseBuilder::handleGet(const Request &req, const std::string &path)
 	}
 
 	if (S_ISREG(statbuf.st_mode)) {
+		// Parte CGI (a la espera de Ainhoa)
+		if (isCgiRequest(path)) {
+            if (access(path.c_str(), R_OK) == -1) {
+                return (buildErrorResponse(403, "Forbidden"));
+            }
+            return (CgiHandler::initCgi(req, path));
+        }
 		if (access(path.c_str(), R_OK) == -1) {
 			return (buildErrorResponse(403, "Forbidden"));
 		}
@@ -78,3 +144,4 @@ Response ResponseBuilder::handleGet(const Request &req, const std::string &path)
 	//! Otros casos no soportados
 	return (buildErrorResponse(403, "Forbidden"));
 }
+	*/

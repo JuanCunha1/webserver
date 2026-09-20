@@ -292,11 +292,19 @@ Response ResponseBuilder::handlePostDirect(const Request &req, const std::string
 	return (res);
 }
 
-Response ResponseBuilder::handlePost(const Request &req, const std::string &path) {
-	// 1. Si la ruta mapea a un script CGI, derivar la ejecución
-	// if (isCgiRequest(path)) {
-	//     return handleCgi(req, path);
-	// }
+Response ResponseBuilder::handlePost(const Request &req, const std::string &path, const ConfigLocation &loc) {
+	if (isCgiRequest(path, loc)) {
+		std::string cgiBinary = getCgiBinary(path, loc);
+		if (!cgiBinary.empty()) {
+			if (access(path.c_str(), R_OK) == -1) {
+				return (buildErrorResponse(403, "Forbidden"));
+			}
+			if (access(cgiBinary.c_str(), X_OK) == -1) {
+				return (buildErrorResponse(500, "Internal Server Error"));
+			}
+			return (CgiHandler::initCgi(req, path, cgiBinary));
+		}
+	}
 
 	const std::string *contentType = req.getHeader("Content-Type");
 

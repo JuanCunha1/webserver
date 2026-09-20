@@ -83,7 +83,7 @@ void CgiHandler::executeChild(int pIn[2], int pOut[2], const Request &req,
 
     freeCharArray(argv);
     freeCharArray(envp);
-    std::exit(EXIT_FAILURE);
+    _exit(127); // Es preferible _exit() dentro de un fork() que std::exit()
 }
 
 void CgiHandler::setupParent(int pIn[2], int pOut[2], const Request &req) {
@@ -282,6 +282,7 @@ char** CgiHandler::buildEnv(const Request &req, const std::string &scriptPath) {
     envVector.push_back("REQUEST_METHOD=" + req.getMethod());
     envVector.push_back("SCRIPT_FILENAME=" + scriptPath);
     envVector.push_back("SCRIPT_NAME=" + req.getUri());
+	envVector.push_back("REDIRECT_STATUS=200");
 
     if (req.getMethod() == "GET") {
         envVector.push_back("QUERY_STRING=" + req.getQuery());
