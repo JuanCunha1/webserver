@@ -22,41 +22,50 @@ class RequestParser {
 		};
 
 	private:
-		RequestParser();
-		//RequestParser(const RequestParser &src);
-		//RequestParser &operator=(const RequestParser &rhs);
-		~RequestParser();
-
-		static bool parseLine(std::string &buffer, std::string &line, State &state);
-		static bool parseRequestLine(const std::string &line, Request &req, State &state);
-		static bool parseHeaderLine(const std::string &line, Request &req, State &state);
-		static std::string trim(const std::string &str);
-		static void processChunked(std::string &buffer, Request &req, State &state, size_t maxBodySize);
+		size_t		_maxBodySize;
+		std::string	_buffer;
+		State 		_state;
+		Request		req;
 		
-		static void validateHost(const Request &req);
-		static unsigned long parseContentLength(const std::string &value);
-		static void setupBodyParsing(Request &req, State &state, size_t maxBodySize);
+		RequestParser();
+		
+		
 
-		static void checkInitialEmptyLines(const std::string &buffer);
-		static void processRequestLineState(std::string &buffer, Request &req, State &state);
-		static void processHeadersState(std::string &buffer, Request &req, State &state, size_t maxBodySize);
-		static void processContentLengthState(std::string &buffer, Request &req, State &state);
+		bool parseLine(std::string &line);
+		bool parseRequestLine(const std::string &line);
+		bool parseHeaderLine(const std::string &line);
+		std::string trim(const std::string &str);
+		void processChunked();
+		
+		void validateHost(const Request &req);
+		unsigned long parseContentLength(const std::string &value);
+		void setupBodyParsing();
+
+		void checkInitialEmptyLines();
+		void processRequestLineState();
+		void processHeadersState();
+		void processContentLengthState();
 
 		//* Para parseRequestLine
-		static void validateMethod(const std::string &method);
-		static void validateVersion(const std::string &version);
-		static void parseUri(const std::string &rawUri, Request &req);
+		void validateMethod(const std::string &method);
+		void validateVersion(const std::string &version);
+		void parseUri(const std::string &rawUri);
 		
 		//* Para parseHeaderLine
-		static bool handleDuplicateHeader(const std::string &key, const std::string &value, Request &req);
+		bool handleDuplicateHeader(const std::string &key, const std::string &value);
 
 		//* Para processChunked
-		static void processChunkSizeState(std::string &buffer, Request &req, State &state, size_t maxBodySize);
-		static void processChunkDataState(std::string &buffer, Request &req, State &state);
-		static void processChunkTrailerState(std::string &buffer, Request &req, State &state);
+		void processChunkSizeState();
+		void processChunkDataState();
+		void processChunkTrailerState();
 
 	public:
-		//* Parse from client buffer and modify buffer eliminating de processed part
-		//* maxBodySize proceeds from .conf of server ()
-		static void process(std::string &buffer, Request &req, State &state, size_t maxBodySize);
+		RequestParser(size_t maxBodySize);
+		RequestParser(const RequestParser &src);
+		RequestParser &operator=(const RequestParser &rhs);
+		~RequestParser();
+
+		void append(const std::string &data);
+		void process();
+		State getState() const;
 };

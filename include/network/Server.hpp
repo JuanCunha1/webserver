@@ -24,7 +24,6 @@ class Server
 		std::vector<Socket *>		_sockets;
 		std::vector<Client *>		_clients;
 		std::vector<struct pollfd>	_pollFds;
-		Request _request;
         std::vector<ConfigServer>   _serverConfigs;
 		
 		Server();

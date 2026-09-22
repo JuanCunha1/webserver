@@ -1,21 +1,21 @@
 #include "network/Client.hpp"
 
-Client::Client(int fd, int serverPort)
+Client::Client(int fd, int serverPort, size_t maxBodySize)
 	: _fd(fd), _serverPort(serverPort), _lastActivity(std::time(NULL))
-	, _requestBuffer(""), _responseBuffer("")
+	, _parser(maxBodySize), _responseBuffer("")
 {
 }
 
 Client::Client()
 	: _fd(-1), _serverPort(-1), _lastActivity(std::time(NULL))
-	, _requestBuffer(""), _responseBuffer("")
+	, _parser(1024), _responseBuffer("")
 {
 }
 
 Client::Client(const Client &other)
 	: _fd(other._fd)
 	, _lastActivity(other._lastActivity)
-	, _requestBuffer(other._requestBuffer)
+	, _parser(other._parser)
 	, _responseBuffer(other._responseBuffer)
 	
 {
@@ -27,7 +27,7 @@ Client &Client::operator=(const Client &other)
 	{
 		_fd = other._fd;
 		_lastActivity = other._lastActivity;
-		_requestBuffer = other._requestBuffer;
+		_parser = other._parser;
 		_responseBuffer = other._responseBuffer;
 		
 	}
@@ -63,7 +63,7 @@ int Client::receive()
 
 	if (bytesRead > 0)
 	{
-		_requestBuffer.append(buffer, bytesRead);
+		_parser.append(std::string(buffer, bytesRead));
 		_lastActivity = std::time(NULL);
 		return bytesRead;
 	}
@@ -75,20 +75,6 @@ int Client::receive()
 		return -1;
 
 	return -2;
-}
-
-bool Client::extractRequest(std::string &request)
-{
-	std::string::size_type end =
-		_requestBuffer.find("\r\n\r\n");
-	if (end == std::string::npos)
-		return false;
-	end += 4;
-
-	request = _requestBuffer.substr(0, end);
-	_requestBuffer.erase(0, end);
-
-	return true;
 }
 
 void Client::setResponse(const std::string &response)
@@ -131,14 +117,14 @@ int Client::sendData()
 	return -1;
 }
 
-const std::string &Client::getRequest() const
+RequestParser &Client::getParser()
 {
-	return _requestBuffer;
+    return _parser;
 }
 
-bool Client::hasDataToReceive() const
+const RequestParser &Client::getParser() const
 {
-	return !_requestBuffer.empty();
+    return _parser;
 }
 
 bool Client::isTimedOut(std::time_t now, int timeout) const

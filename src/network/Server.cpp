@@ -191,7 +191,8 @@ void Server::handlePollEvent(size_t index)
 	if (revents & POLLIN)
 	{
 		handleClientRead(index);
-		return;
+		if (index >= _pollFds.size())
+        	return;
 	}
 	if (revents & POLLOUT)
 		handleClientWrite(index);
@@ -271,43 +272,23 @@ void Server::handleClientRead(size_t index)
 		removeClient(index);
 		return;
 	}
-	std::string request;
+	try
+    {
+        client->getParser().process();
+    }
+    catch (const std::exception &e)
+    {
+        return;
+    }
 
-	if (!client->extractRequest(request))
-		return;
+    if (client->getParser().getState() != RequestParser::COMPLETE)
+        return;
 
-	// Por enquanto apenas teste
-	client->setResponse(createTestResponse());
-
-	_pollFds[index].events |= POLLOUT;
-}
-/*
-void Server::handleClientWrite(size_t index)
-{
-	Client *client = findClient(_pollFds[index].fd);
-
-	if (client == NULL)
-	{
-		removeClient(index);
-		return;
-	}
-	int result = client->sendResponse();
-
-	if (result < 0)
-	{
-		removeClient(index);
-		return;
-	}
-
-	if (client->responseComplete())
-	{
-		removeClient(index);
-		return;
-	}
+    client->setResponse(createTestResponse());
 
 	_pollFds[index].events |= POLLOUT;
 }
-*/
+
 void Server::handleClientWrite(size_t index)
 {
 	Client *client = findClient(_pollFds[index].fd);
@@ -367,7 +348,8 @@ void Server::addClient(size_t socketIndex)
 
 	Client *client = new Client(
 		clientFd,
-		_sockets[socketIndex]->getPort()
+		_sockets[socketIndex]->getPort(),
+		_serverConfigs[socketIndex].clientMaxBodySize
 	);
 
 	_clients.push_back(client);
