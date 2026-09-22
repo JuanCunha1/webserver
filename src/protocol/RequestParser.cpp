@@ -21,31 +21,40 @@ RequestParser &RequestParser::operator=(const RequestParser &rhs) {
 	return (*this);
 }
 */
+RequestParser::RequestParser(size_t maxBodySize) {
+	_maxBodySize = maxBodySize 
+	_state = REQUEST_LINE;
+	_buffer = NULL;
+}
 
 RequestParser::~RequestParser() {
 }
 
+void	RequestParser::setBuffer(std::string &buffer) {
+	_buffer = buffer; 
+}
+
 //! RFC allows empty lines at first, so we ignore them and wait for more lines
-void RequestParser::process(std::string &buffer, Request &req, State &state, size_t maxBodySize) {
+void RequestParser::process(Request &req, State &state, size_t maxBodySize) {
 	try {
 		//* Empty/clrn/rn check
-		checkInitialEmptyLines(buffer);
+		checkInitialEmptyLines(_buffer);
 
 		//* Orquestador de la máquina de estados
 		while (state != COMPLETE && state != ERROR) {
 			State prevState = state;
 
 			if (state == REQUEST_LINE) {
-				processRequestLineState(buffer, req, state);
+				processRequestLineState(req, state);
 			} 
 			else if (state == HEADERS) {
-				processHeadersState(buffer, req, state, maxBodySize);
+				processHeadersState(req, state, maxBodySize);
 			} 
 			else if (state == BODY_CONTENT_LENGTH) {
-				processContentLengthState(buffer, req, state);
+				processContentLengthState(req, state);
 			} 
 			else if (state == CHUNK_SIZE || state == CHUNK_DATA || state == CHUNK_TRAILER) {
-				processChunked(buffer, req, state, maxBodySize);
+				processChunked(req, state, maxBodySize);
 			}
 
 			// Si el estado no ha cambiado, necesitamos leer más datos del socket
@@ -59,20 +68,20 @@ void RequestParser::process(std::string &buffer, Request &req, State &state, siz
 	}
 }
 
-void RequestParser::checkInitialEmptyLines(const std::string &buffer) {
+void RequestParser::checkInitialEmptyLines() {
 	size_t start = 0;
-	while (start < buffer.length() && (buffer[start] == '\r' || buffer[start] == '\n')) {
+	while (start < _buffer.length() && (_buffer[start] == '\r' || _buffer[start] == '\n')) {
 		start++;
 	}
-	if (start == buffer.length()) {
+	if (start == _buffer.length()) {
 		throw HttpException(400);
 	}
 }
 
-void RequestParser::processRequestLineState(std::string &buffer, Request &req, State &state) {
+void RequestParser::processRequestLineState(Request &req, State &state) {
 	std::string line;
 	while (state == REQUEST_LINE) {
-		if (!parseLine(buffer, line, state)) {
+		if (!parseLine(line, state)) {
 			//std::cout << "BUFFER1: " << buffer << std::endl;
 			return;
 		}
@@ -88,9 +97,9 @@ void RequestParser::processRequestLineState(std::string &buffer, Request &req, S
 	}
 }
 
-void RequestParser::processHeadersState(std::string &buffer, Request &req, State &state, size_t maxBodySize) {
+void RequestParser::processHeadersState(Request &req, State &state, size_t maxBodySize) {
 	std::string line;
-	while (parseLine(buffer, line, state)) {
+	while (parseLine(line, state)) {
 		if (line.empty()) {
 			//* Host validation
 			if (req.version == "HTTP/1.1") {
@@ -109,31 +118,31 @@ void RequestParser::processHeadersState(std::string &buffer, Request &req, State
 	}
 }
 
-void RequestParser::processContentLengthState(std::string &buffer, Request &req, State &state) {
+void RequestParser::processContentLengthState(Request &req, State &state) {
 	const std::string *contentLength = req.getHeader("content-length");
 	size_t expectedLength = std::strtoul(contentLength->c_str(), NULL, 10);
 
-	if (buffer.size() >= expectedLength) {
-		req.body = buffer.substr(0, expectedLength);
-		buffer.erase(0, expectedLength);
+	if (_buffer.size() >= expectedLength) {
+		req.body = _buffer.substr(0, expectedLength);
+		_buffer.erase(0, expectedLength);
 		state = COMPLETE;
 		req.isComplete = true;
 	}
 }
 
-void RequestParser::processChunked(std::string &buffer, Request &req, State &state, size_t maxBodySize) {
+void RequestParser::processChunked(Request &req, State &state, size_t maxBodySize) {
 	try {
 		while (true) {
 			State prevState = state;
 
 			if (state == CHUNK_SIZE) {
-				processChunkSizeState(buffer, req, state, maxBodySize);
+				processChunkSizeState(req, state, maxBodySize);
 			}
 			else if (state == CHUNK_DATA) {
-				processChunkDataState(buffer, req, state);
+				processChunkDataState(req, state);
 			}
 			else if (state == CHUNK_TRAILER) {
-				processChunkTrailerState(buffer, req, state);
+				processChunkTrailerState(req, state);
 			}
 
 			// Salimos si el estado es final o si no ha cambiado (falta leer más del buffer)
@@ -216,9 +225,9 @@ bool RequestParser::parseHeaderLine(const std::string &line, Request &req, State
 	return (true);
 }
 
-void RequestParser::processChunkSizeState(std::string &buffer, Request &req, State &state, size_t maxBodySize) {
+void RequestParser::processChunkSizeState(Request &req, State &state, size_t maxBodySize) {
 	std::string line;
-	if (!parseLine(buffer, line, state))
+	if (!parseLine(line, state))
 		return;
 	//* Eliminate Chunk Extensions (Nginx ignore it)
 	size_t semiPos = line.find(';');
@@ -249,24 +258,24 @@ void RequestParser::processChunkSizeState(std::string &buffer, Request &req, Sta
 		state = CHUNK_DATA;
 }
 
-void RequestParser::processChunkDataState(std::string &buffer, Request &req, State &state) {
+void RequestParser::processChunkDataState(Request &req, State &state) {
 	size_t size = req.getChunkSize();
 
-	if (buffer.size() < size + 2)
+	if (_buffer.size() < size + 2)
 		return;
 
-	if (buffer.substr(size, 2) != "\r\n") {
+	if (_buffer.substr(size, 2) != "\r\n") {
 		throw HttpException(400);
 	}
-	req.body.append(buffer, 0, size);
-	buffer.erase(0, size + 2);
+	req.body.append(_buffer, 0, size);
+	_buffer.erase(0, size + 2);
 
 	state = CHUNK_SIZE;
 }
 
-void RequestParser::processChunkTrailerState(std::string &buffer, Request &req, State &state) {
+void RequestParser::processChunkTrailerState(Request &req, State &state) {
 	std::string line;
-	if (!parseLine(buffer, line, state))
+	if (!parseLine(line, state))
 		return;
 
 	if (line.empty()) {
@@ -406,18 +415,18 @@ bool RequestParser::handleDuplicateHeader(const std::string &key, const std::str
 	return (false);
 }
 
-bool RequestParser::parseLine(std::string &buffer, std::string &line, State &state) {
-	size_t lf_pos = buffer.find('\n');
+bool RequestParser::parseLine(std::string &line, State &state) {
+	size_t lf_pos = _buffer.find('\n');
 	if (lf_pos == std::string::npos) {
 		return (false);
 	}
-	if (lf_pos == 0 || buffer[lf_pos - 1] != '\r') {
+	if (lf_pos == 0 || _buffer[lf_pos - 1] != '\r') {
 		state = ERROR;
 		throw HttpException(400); // Salto de línea inválido (solo LF) -> 400 Bad Request
 	}
 
-	line = buffer.substr(0, lf_pos - 1);
-	buffer.erase(0, lf_pos + 1);
+	line = _buffer.substr(0, lf_pos - 1);
+	_buffer.erase(0, lf_pos + 1);
 	return (true);
 }
 
