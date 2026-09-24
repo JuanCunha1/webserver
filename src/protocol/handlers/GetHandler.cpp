@@ -40,21 +40,21 @@ Response ResponseBuilder::serveStaticFile(const Request &req, const std::string 
 	return (res);
 }
 
-Response ResponseBuilder::handleGet(const Request &req, const std::string &path, const ConfigLocation &loc) {
+HandlerResult ResponseBuilder::handleGet(const Request &req, const std::string &path, const ConfigLocation &loc) {
+    HandlerResult result;
     struct stat statbuf;
 
-    // 1. Comprobar existencia del recurso
     if (stat(path.c_str(), &statbuf) == -1) {
         if (errno == ENOENT) {
-            return (buildErrorResponse(404, "Not Found"));
+            result.staticResponse = buildErrorResponse(404, "Not Found");
+        } else if (errno == EACCES) {
+            result.staticResponse = buildErrorResponse(403, "Forbidden");
+        } else {
+            result.staticResponse = buildErrorResponse(500, "Internal Server Error");
         }
-        if (errno == EACCES) {
-            return (buildErrorResponse(403, "Forbidden"));
-        }
-        return (buildErrorResponse(500, "Internal Server Error"));
+        return (result);
     }
 
-    // 2. Si es Directorio
     if (S_ISDIR(statbuf.st_mode)) {
         std::string indexPath = path;
         if (!indexPath.empty() && indexPath[indexPath.size() - 1] != '/') {
@@ -64,42 +64,50 @@ Response ResponseBuilder::handleGet(const Request &req, const std::string &path,
 
         struct stat indexStat;
         if (stat(indexPath.c_str(), &indexStat) == 0 && S_ISREG(indexStat.st_mode)) {
-            return (serveStaticFile(req, indexPath));
+            result.staticResponse = serveStaticFile(req, indexPath);
+            return (result);
         }
-
+		//! Mirar que es esto
         if (loc.autoindex) {
-            // return (generateAutoindex(req, path));
+            // result.staticResponse = generateAutoindex(req, path);
+            // return (result);
         }
-        return (buildErrorResponse(403, "Forbidden"));
+        
+        result.staticResponse = buildErrorResponse(403, "Forbidden");
+        return (result);
     }
 
-    // 3. Si es Archivo Regular
     if (S_ISREG(statbuf.st_mode)) {
         std::string cgiBinary = getCgiBinary(path, loc);
 
-        // Si cgiBinary no está vacío, es una petición CGI configurada
         if (!cgiBinary.empty()) {
-            // El script debe tener permisos de lectura
-            if (access(path.c_str(), R_OK) == -1) {
-                return (buildErrorResponse(403, "Forbidden"));
-            }
-            // El binario ejecutable (ej: /usr/bin/python3) debe existir y poder ejecutarse
-            if (access(cgiBinary.c_str(), X_OK) == -1) {
-                return (buildErrorResponse(500, "Internal Server Error"));
+            if (access(path.c_str(), R_OK) == -1 || access(cgiBinary.c_str(), X_OK) == -1) {
+                result.staticResponse = buildErrorResponse(403, "Forbidden");
+                return (result);
             }
             
-            // Le pasas la petición, la ruta del script y la ruta del binario
-            return (CgiHandler::initCgi(req, path, cgiBinary));
+            result.isCgi = true;
+            result.cgiHandler = new CgiHandler();
+            
+            if (!result.cgiHandler->initCgi(req, path, cgiBinary)) {
+                delete result.cgiHandler;
+                result.isCgi = false;
+                result.staticResponse = buildErrorResponse(500, "Internal Server Error");
+            }
+            return (result); // Retorno asíncrono, sin while[cite: 2]
         }
 
-        // Si no es CGI, se sirve como estático
         if (access(path.c_str(), R_OK) == -1) {
-            return (buildErrorResponse(403, "Forbidden"));
+            result.staticResponse = buildErrorResponse(403, "Forbidden");
+            return (result);
         }
-        return (serveStaticFile(req, path));
+        
+        result.staticResponse = serveStaticFile(req, path);
+        return (result);
     }
 
-    return (buildErrorResponse(403, "Forbidden"));
+    result.staticResponse = buildErrorResponse(403, "Forbidden");
+    return (result);
 }
 
 /*

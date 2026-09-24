@@ -1,5 +1,6 @@
 #include "../../../include/protocol/ResponseBuilder.hpp"
 #include "../../../include/protocol/MimeTypes.hpp"
+#include "../../../include/protocol/CgiHandler.hpp"
 #include "../../../include/Utils.hpp"
 
 #include <sstream>
@@ -276,7 +277,11 @@ Response ResponseBuilder::handlePostDirect(const Request &req, const std::string
 		std::string responseBody = "<html><body><h1>201 Created</h1><p>Resource created successfully.</p></body></html>";
 		res.setHeader("Content-Type", "text/html");
 		res.setHeader("Content-Length", Utils::toString(responseBody.size()));
-		res.setHeader("Connection", "keep-alive");
+		if (shouldCloseConnection(req, 200)) {
+			res.setHeader("Connection", "close");
+		} else {
+			res.setHeader("Connection", "keep-alive");
+		}
 		res.setBody(responseBody);
 	} else {
 		res.setStatusCode(200);
@@ -285,117 +290,101 @@ Response ResponseBuilder::handlePostDirect(const Request &req, const std::string
 		std::string responseBody = "<html><body><h1>200 OK</h1><p>Resource updated successfully.</p></body></html>";
 		res.setHeader("Content-Type", "text/html");
 		res.setHeader("Content-Length", Utils::toString(responseBody.size()));
-		res.setHeader("Connection", "keep-alive");
+		if (shouldCloseConnection(req, 200)) {
+			res.setHeader("Connection", "close");
+		} else {
+			res.setHeader("Connection", "keep-alive");
+		}
 		res.setBody(responseBody);
 	}
 
 	return (res);
 }
 
-Response ResponseBuilder::handlePost(const Request &req, const std::string &path, const ConfigLocation &loc) {
-	if (isCgiRequest(path, loc)) {
-		std::string cgiBinary = getCgiBinary(path, loc);
-		if (!cgiBinary.empty()) {
-			if (access(path.c_str(), R_OK) == -1) {
-				return (buildErrorResponse(403, "Forbidden"));
-			}
-			if (access(cgiBinary.c_str(), X_OK) == -1) {
-				return (buildErrorResponse(500, "Internal Server Error"));
-			}
-			return (CgiHandler::initCgi(req, path, cgiBinary));
-		}
-	}
+HandlerResult ResponseBuilder::handlePost(const Request &req, const std::string &path, const ConfigLocation &loc) {
+    HandlerResult result;
 
-	const std::string *contentType = req.getHeader("Content-Type");
+    if (isCgiRequest(path, loc)) {
+        std::string cgiBinary = getCgiBinary(path, loc);
+        if (!cgiBinary.empty()) {
+            if (access(path.c_str(), R_OK) == -1 || access(cgiBinary.c_str(), X_OK) == -1) {
+                result.staticResponse = buildErrorResponse(403, "Forbidden");
+                return (result);
+            }
+            
+            result.isCgi = true;
+            result.cgiHandler = new CgiHandler();
+            
+            if (!result.cgiHandler->initCgi(req, path, cgiBinary)) {
+                delete result.cgiHandler;
+                result.isCgi = false;
+                result.staticResponse = buildErrorResponse(500, "Internal Server Error");
+            }
+            return (result); // Retorno asíncrono, sin while[cite: 1]
+        }
+    }
 
-	//* Multipart / Form-Data (sube uno o varios archivos)
-	if (contentType != NULL && contentType->find("multipart/form-data") != std::string::npos) {
-		std::string boundary = extractBoundary(*contentType);
-		std::vector<std::string> savedFilenames;
-		std::map<std::string, std::string> formFields;
+    const std::string *contentType = req.getHeader("Content-Type");
 
-		if (!parseAndSaveMultipart(req.getBody(), boundary, path, savedFilenames, formFields)) {
-			return (buildErrorResponse(400, "Bad Request"));
-		}
+    if (contentType != NULL && contentType->find("multipart/form-data") != std::string::npos) {
+        std::string boundary = extractBoundary(*contentType);
+        std::vector<std::string> savedFilenames;
+        std::map<std::string, std::string> formFields;
 
-		Response res;
+        if (!parseAndSaveMultipart(req.getBody(), boundary, path, savedFilenames, formFields)) {
+            result.staticResponse = buildErrorResponse(400, "Bad Request");
+            return (result);
+        }
 
-		if (!savedFilenames.empty()) {
-			res.setStatusCode(201);
-			res.setStatusMessage("Created");
-			if (savedFilenames.size() == 1) {
-				std::string uri = req.getUri();
-				if (uri.empty() || uri[uri.size() - 1] != '/') {
-					uri += "/";
-				}
-				res.setHeader("Location", uri + savedFilenames[0]);
-			}
+        Response res;
+        if (!savedFilenames.empty()) {
+            res.setStatusCode(201);
+            res.setStatusMessage("Created");
+            if (savedFilenames.size() == 1) {
+                std::string uri = req.getUri();
+                if (uri.empty() || uri[uri.size() - 1] != '/') uri += "/";
+                res.setHeader("Location", uri + savedFilenames[0]);
+            }
+        } else {
+            res.setStatusCode(200);
+            res.setStatusMessage("OK");
+        }
+
+        std::string msg = "<html><body><h1>Procesado correctamente</h1></body></html>";
+        res.setHeader("Content-Type", "text/html");
+        res.setHeader("Content-Length", Utils::toString(msg.size()));
+        if (shouldCloseConnection(req, 200)) {
+			res.setHeader("Connection", "close");
 		} else {
-			res.setStatusCode(200);
-			res.setStatusMessage("OK");
+			res.setHeader("Connection", "keep-alive");
 		}
+        res.setBody(msg);
+        
+        result.staticResponse = res;
+        return (result);
+    }
+    else if (contentType != NULL && contentType->find("application/x-www-form-urlencoded") != std::string::npos) {
+        std::map<std::string, std::string> formFields;
+        parseUrlEncoded(req.getBody(), formFields);
 
-		std::string msg = "<html><body><h1>Procesado correctamente</h1>";
+        Response res;
+        res.setStatusCode(200);
+        res.setStatusMessage("OK");
 
-		if (!savedFilenames.empty()) {
-			msg += "<h3>Archivos subidos:</h3><ul>";
-			for (size_t i = 0; i < savedFilenames.size(); ++i) {
-				msg += "<li>" + savedFilenames[i] + "</li>";
-			}
-			msg += "</ul>";
-		}
-
-		if (!formFields.empty()) {
-			msg += "<h3>Campos del formulario:</h3><ul>";
-			std::map<std::string, std::string>::const_iterator it = formFields.begin();
-			while (it != formFields.end()) {
-				msg += "<li><strong>" + it->first + ":</strong> " + it->second + "</li>";
-				++it;
-			}
-			msg += "</ul>";
-		}
-
-		msg += "</body></html>";
-
-		res.setHeader("Content-Type", "text/html");
-		res.setHeader("Content-Length", Utils::toString(msg.size()));
-		res.setHeader("Connection", "keep-alive");
-		res.setBody(msg);
-		return (res);
-	}
-
-	//* Application / X-WWW-Form-Urlencoded (formulario de texto estándar)
-	else if (contentType != NULL && contentType->find("application/x-www-form-urlencoded") != std::string::npos) {
-		std::map<std::string, std::string> formFields;
-		parseUrlEncoded(req.getBody(), formFields);
-
-		Response res;
-		res.setStatusCode(200);
-		res.setStatusMessage("OK");
-
-		std::string msg = "<html><body><h1>Formulario procesado correctamente</h1>";
-		
-		if (!formFields.empty()) {
-			msg += "<h3>Datos recibidos (x-www-form-urlencoded):</h3><ul>";
-			std::map<std::string, std::string>::const_iterator it = formFields.begin();
-			while (it != formFields.end()) {
-				msg += "<li><strong>" + it->first + ":</strong> " + it->second + "</li>";
-				++it;
-			}
-			msg += "</ul>";
+        std::string msg = "<html><body><h1>Formulario procesado correctamente</h1></body></html>";
+        res.setHeader("Content-Type", "text/html");
+        res.setHeader("Content-Length", Utils::toString(msg.size()));
+        if (shouldCloseConnection(req, 200)) {
+			res.setHeader("Connection", "close");
 		} else {
-			msg += "<p>El formulario estaba vacío o era inválido.</p>";
+			res.setHeader("Connection", "keep-alive");
 		}
+        res.setBody(msg);
+        
+        result.staticResponse = res;
+        return (result);
+    }
 
-		msg += "</body></html>";
-
-		res.setHeader("Content-Type", "text/html");
-		res.setHeader("Content-Length", Utils::toString(msg.size()));
-		res.setHeader("Connection", "keep-alive");
-		res.setBody(msg);
-		return (res);
-	}
-
-	//* Subida directa
-	return (handlePostDirect(req, path));
+    result.staticResponse = handlePostDirect(req, path);
+    return (result);
 }

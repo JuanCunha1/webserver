@@ -15,5 +15,7 @@ public:
 	static std::string toString(const T& value);
 
 	static bool isAllUpper(const std::string& str);
+
+	static std::string getCurrentDateGMT();
 };
 #include "Utils.tpp"

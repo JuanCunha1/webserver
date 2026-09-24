@@ -272,6 +272,13 @@ void RequestParser::processChunkTrailerState(std::string &buffer, Request &req, 
 	if (line.empty()) {
 		state = COMPLETE;
 		req.isComplete = true;
+		
+		//*Sustituimos la cabecera para el CGI
+		req.headers.erase("transfer-encoding");
+		std::ostringstream oss;
+		oss << req.body.size();		
+		req.headers["content-length"] = oss.str();
+		
 		return;
 	}
 }

@@ -4,6 +4,8 @@
 #include <map>
 #include <sys/types.h>
 #include <unistd.h>
+#include <sys/wait.h>
+#include <signal.h>
 
 //* Cgi debe ser un objeto independiente 
 
@@ -46,6 +48,7 @@ class CgiHandler {
 
 		void		writeToCgi();
 		void		readFromCgi();
+		void		killCgi();
 
 		Response	buildCgiResponse();
 

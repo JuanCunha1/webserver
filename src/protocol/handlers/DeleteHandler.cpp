@@ -17,39 +17,42 @@ static std::string getParentDirectory(const std::string &path) {
 	return (path.substr(0, lastSlash));
 }
 
-Response ResponseBuilder::handleDelete(const Request &req, const std::string &path) {
-	(void)req;
-	struct stat statbuf;
+HandlerResult ResponseBuilder::handleDelete(const Request &req, const std::string &path) {
+    (void)req;
+    HandlerResult result;
+    struct stat statbuf;
 
-	if (stat(path.c_str(), &statbuf) == -1) {
-		if (errno == ENOENT) {
-			return (buildErrorResponse(404, "Not Found"));
-		}
-		if (errno == EACCES) {
-			return (buildErrorResponse(403, "Forbidden"));
-		}
-		return (buildErrorResponse(500, "Internal Server Error"));
-	}
-	if (S_ISDIR(statbuf.st_mode)) {
-		return (buildErrorResponse(403, "Forbidden"));
-	}
-	std::string parentDir = getParentDirectory(path);
-	if (access(parentDir.c_str(), W_OK) == -1) {
-		return (buildErrorResponse(403, "Forbidden"));
-	}
-	if (unlink(path.c_str()) == -1) {
-		if (errno == EACCES) {
-			return (buildErrorResponse(403, "Forbidden"));
-		}
-		// Si hay otro tipo de error al borrar, devolvemos 500
-		return (buildErrorResponse(500, "Internal Server Error"));
-	}
-	Response res;
-	res.setStatusCode(204);
-	res.setStatusMessage("No Content");
-	res.setHeader("Connection", "keep-alive");
-	res.setHeader("Content-Length", "0");
-	res.setBody("");
+    if (stat(path.c_str(), &statbuf) == -1) {
+        if (errno == ENOENT) result.staticResponse = buildErrorResponse(404, "Not Found");
+        else if (errno == EACCES) result.staticResponse = buildErrorResponse(403, "Forbidden");
+        else result.staticResponse = buildErrorResponse(500, "Internal Server Error");
+        return (result);
+    }
+    
+    if (S_ISDIR(statbuf.st_mode)) {
+        result.staticResponse = buildErrorResponse(403, "Forbidden");
+        return (result);
+    }
+    
+    std::string parentDir = getParentDirectory(path);
+    if (access(parentDir.c_str(), W_OK) == -1) {
+        result.staticResponse = buildErrorResponse(403, "Forbidden");
+        return (result);
+    }
+    
+    if (unlink(path.c_str()) == -1) {
+        if (errno == EACCES) result.staticResponse = buildErrorResponse(403, "Forbidden");
+        else result.staticResponse = buildErrorResponse(500, "Internal Server Error");
+        return (result);
+    }
+    
+    Response res;
+    res.setStatusCode(204);
+    res.setStatusMessage("No Content");
+    res.setHeader("Connection", "keep-alive");
+    //res.setHeader("Content-Length", "0"); para cumplir el RFC 7230
+    res.setBody("");
 
-	return (res);
+    result.staticResponse = res;
+    return (result);
 }
