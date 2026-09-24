@@ -47,7 +47,6 @@ void RequestParser::process() {
 		//* Orquestador de la máquina de estados
 		while (_state != COMPLETE && _state != ERROR) {
 			State prevState = _state;
-
 			if (_state == REQUEST_LINE) {
 				processRequestLineState();
 			} 
@@ -284,7 +283,12 @@ void RequestParser::processChunkTrailerState() {
 	if (line.empty()) {
 		_state = COMPLETE;
 		req.isComplete = true;
-		return;
+		
+		//*Sustituimos la cabecera para el CGI
+		req.headers.erase("transfer-encoding");
+		std::ostringstream oss;
+		oss << req.body.size();		
+		req.headers["content-length"] = oss.str();
 	}
 }
 

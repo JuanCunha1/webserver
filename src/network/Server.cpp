@@ -283,7 +283,7 @@ void Server::handleClientRead(size_t index)
 
     if (client->getParser().getState() != RequestParser::COMPLETE)
         return;
-
+	
     client->setResponse(createTestResponse());
 
 	_pollFds[index].events |= POLLOUT;
