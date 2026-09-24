@@ -1,13 +1,18 @@
 #include "network/Server.hpp"
 
-
-
 Server::Server()
 	:	_sockets(),
 		_clients(),
 		_pollFds(),
-		_request(),
-		_state(RequestParser::REQUEST_LINE)
+		_serverConfigs()
+{
+}
+
+Server::Server(std::vector<ConfigServer> serverConfigs)
+	:	_sockets(),
+		_clients(),
+		_pollFds(),
+		_serverConfigs(serverConfigs)
 {
 }
 
@@ -15,8 +20,7 @@ Server::Server(const Server &other)
 	: _sockets(other._sockets)
 	, _clients(other._clients)
 	, _pollFds(other._pollFds)
-	, _request(other._request)
-	, _state(other._state)
+	, _serverConfigs(other._serverConfigs)
 { }
 Server &Server::operator=(const Server &other)
 {
@@ -25,8 +29,7 @@ Server &Server::operator=(const Server &other)
 		_sockets = other._sockets;
 		_clients = other._clients;
 		_pollFds = other._pollFds;
-		_request = other._request;
-		_state = other._state;
+		_serverConfigs = other._serverConfigs;
 	}
 	return *this;
 }
@@ -44,11 +47,12 @@ Server::~Server()
 		delete *it;
 	}
 }
-void Server::start(const std::vector<int> &ports)
+void Server::start()
 {
-	for (size_t i = 0; i < ports.size(); ++i)
+	for (size_t i = 0; i < _serverConfigs.size(); ++i)
 	{
-		Socket *socket = new Socket(ports[i], "127.0.0.1");
+		const ConfigServer &config = _serverConfigs[i];
+		Socket *socket = new Socket(config.port, config.host);
 
 		try
 		{
@@ -69,7 +73,6 @@ void Server::start(const std::vector<int> &ports)
 	std::cout << "Server started with "
 			  << _sockets.size()
 			  << " listening socket(s)"
-			  << ports[0]
 			  << std::endl;
 }
 
@@ -133,43 +136,81 @@ void Server::run()
 	}
 }
 
+bool Server::isListeningSocket(int fd) const
+{
+	for (size_t i = 0; i < _sockets.size(); ++i)
+	{
+		if (_sockets[i]->getFd() == fd)
+			return true;
+	}
+
+	return false;
+}
+
+void Server::handleServerError(size_t index)
+{
+	int fd = _pollFds[index].fd;
+
+	std::cerr << "Error on listening socket fd "
+			  << fd << std::endl;
+
+	for (size_t i = 0; i < _sockets.size(); ++i)
+	{
+		if (_sockets[i]->getFd() == fd)
+		{
+			delete _sockets[i];
+			_sockets.erase(_sockets.begin() + i);
+			break;
+		}
+	}
+
+	_pollFds.erase(_pollFds.begin() + index);
+}
+
 void Server::handlePollEvent(size_t index)
 {
 	int fd = _pollFds[index].fd;
 	short revents = _pollFds[index].revents;
 
+	if (isListeningSocket(fd))
+	{
+		if (revents & (POLLERR | POLLHUP | POLLNVAL))
+		{
+			handleServerError(index);
+			return;
+		}
+		if (revents & POLLIN)
+			handleServerEvent(index);
+		return;
+	}
 	if (revents & (POLLERR | POLLHUP | POLLNVAL))
 	{
 		removeClient(index);
 		return;
 	}
-
 	if (revents & POLLIN)
 	{
-		for (size_t i = 0; i < _sockets.size(); ++i)
-		{
-			if (_sockets[i]->getFd() == fd)
-			{
-				handleServerEvent(index);
-				return;
-			}
-		}
-
 		handleClientRead(index);
-
 		if (index >= _pollFds.size())
-			return;
+        	return;
 	}
-
 	if (revents & POLLOUT)
-	{
 		handleClientWrite(index);
-	}
+
 }
 
 void Server::handleServerEvent(size_t index)
 {
-	addClient(index);
+	int fd = _pollFds[index].fd;
+
+	for (size_t i = 0; i < _sockets.size(); ++i)
+	{
+		if (_sockets[i]->getFd() == fd)
+		{
+			addClient(i);
+			return;
+		}
+	}
 }
 
 void Server::handleClientEvent(size_t index)
@@ -200,7 +241,7 @@ void Server::handleClientEvent(size_t index)
 std::string createTestResponse()
 {
 	return "HTTP/1.1 200 OK\r\n"
-		   "Content-Length: 10\r\n"
+		   "Content-Length: 13\r\n"
 		   "Content-Type: text/plain\r\n"
 		   "Connection: keep-alive\r\n"
 		   "\r\n"
@@ -218,61 +259,36 @@ void Server::handleClientRead(size_t index)
 	}
 
 	int result = client->receive();
-	std::cout << "Received data from client fd: "
-			  << client->getFd()
-			  << std::endl;
+
 	if (result == 0)
 	{
 		removeClient(index);
 		return;
 	}
-
-	if (result < 0)
+	if (result == -1)
 		return;
-
-	std::string request;
-
-	if (!client->extractRequest(request))
+	if (result == -2)
 	{
+		removeClient(index);
 		return;
 	}
-	// Passing buffer to request parser
-	//process(request, &_request, &_state, clientMaxbodySize);
+	try
+    {
+        client->getParser().process();
+    }
+    catch (const std::exception &e)
+    {
+        return;
+    }
 
-
-
-	//std::cout << request << std::endl;
-	// test response for now, you can replace this with your actual response generation logic
+    if (client->getParser().getState() != RequestParser::COMPLETE)
+        return;
 	
-	client->setResponse(createTestResponse());
+    client->setResponse(createTestResponse());
 
 	_pollFds[index].events |= POLLOUT;
 }
-/*void Server::handleClientWrite(size_t index)
-{
-	Client *client = findClient(_pollFds[index].fd);
 
-	if (client == NULL)
-	{
-		removeClient(index);
-		return;
-	}
-	int result = client->sendResponse();
-
-	if (result < 0)
-	{
-		removeClient(index);
-		return;
-	}
-
-	if (client->responseComplete())
-	{
-		removeClient(index);
-		return;
-	}
-
-	_pollFds[index].events |= POLLOUT;
-}*/
 void Server::handleClientWrite(size_t index)
 {
 	Client *client = findClient(_pollFds[index].fd);
@@ -282,14 +298,13 @@ void Server::handleClientWrite(size_t index)
 		return;
 	}
 	
-	client->sendData();
-	
-	if (!client->hasDataToSend())
+	int result = client->sendData();
+	if (result < 0)
 	{
 		removeClient(index);
 		return;
 	}
-	_pollFds[index].events = POLLIN | POLLOUT;
+	_pollFds[index].events = POLLIN;
 }
 
 Client *Server::findClient(int fd)
@@ -324,16 +339,17 @@ void Server::removeClient(size_t index)
 	_pollFds.erase(_pollFds.begin() + index);
 }
 
-void Server::addClient(size_t index)
+void Server::addClient(size_t socketIndex)
 {
-	int clientFd = _sockets[index]->acceptConnection();
+	int clientFd = _sockets[socketIndex]->acceptConnection();
 
 	if (clientFd == -1)
 		return;
 
 	Client *client = new Client(
 		clientFd,
-		_sockets[index]->getPort()
+		_sockets[socketIndex]->getPort(),
+		_serverConfigs[socketIndex].clientMaxBodySize
 	);
 
 	_clients.push_back(client);

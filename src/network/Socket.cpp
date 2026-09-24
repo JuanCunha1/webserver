@@ -4,6 +4,7 @@
 Socket::Socket(int port, const std::string &host)
 	: _fd(-1), _port(port), _host(host)
 {
+	std::cout << "host: " << _host << std::endl;
 }
 
 Socket::Socket()
@@ -52,7 +53,12 @@ void Socket::bindSocket()
 	std::memset(&address, 0, sizeof(address));
 
 	address.sin_family = AF_INET;
-	address.sin_addr.s_addr = inet_addr(_host.c_str());;
+	if (_host == "localhost")
+    address.sin_addr.s_addr = inet_addr("127.0.0.1");
+	else if (_host == "0.0.0.0")
+		address.sin_addr.s_addr = htonl(INADDR_ANY);
+	else
+		address.sin_addr.s_addr = inet_addr(_host.c_str());
 	address.sin_port = htons(_port);
 
 	if (bind(_fd,
@@ -83,8 +89,7 @@ int Socket::acceptConnection()
 	int clientFd = accept(
 		_fd,
 		(struct sockaddr *)&clientAddress,
-		&clientAddressLength
-	);
+		&clientAddressLength);
 	if (clientFd == -1)
 	{
 		if (errno == EAGAIN || errno == EWOULDBLOCK)

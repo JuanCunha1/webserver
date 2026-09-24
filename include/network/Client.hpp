@@ -1,5 +1,6 @@
 #pragma once
 
+#include "protocol/RequestParser.hpp"
 #include <unistd.h>
 #include <string>
 #include <sys/socket.h>
@@ -11,11 +12,11 @@
 class Client
 {
 	private:
-		int			_fd;
-		int			_serverPort;
-		std::time_t	_lastActivity;
-		std::string	_requestBuffer;
-		std::string	_responseBuffer;
+		int				_fd;
+		int				_serverPort;
+		std::time_t		_lastActivity;
+		RequestParser	_parser;
+		std::string		_responseBuffer;
 		
 		
 		Client();
@@ -23,14 +24,14 @@ class Client
 		Client &operator=(const Client &other);
 
 	public:
-		Client(int fd, int serverPort);
+		Client(int fd, int serverPort, size_t maxBodySize);
 		~Client();
 
 		int getFd() const;
 		int getServerPort() const;
 
-		bool receive();
-		bool sendData();
+		int receive();
+		int sendData();
 
 		void setResponse(const std::string &response);
 
@@ -42,5 +43,8 @@ class Client
 		bool isTimedOut(std::time_t now, int timeout) const;
 
 		bool extractRequest(std::string &request);
+
+		RequestParser &getParser();
+		const RequestParser &getParser() const;
 };
 
