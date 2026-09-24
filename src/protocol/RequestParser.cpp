@@ -464,3 +464,7 @@ std::string RequestParser::trim(const std::string &str) {
 RequestParser::State RequestParser::getState() const {
 	return _state;
 }
+
+Request &RequestParser::getRequest() {
+	return req;
+}

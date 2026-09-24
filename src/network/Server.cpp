@@ -192,7 +192,7 @@ void Server::handlePollEvent(size_t index)
 	{
 		handleClientRead(index);
 		if (index >= _pollFds.size())
-        	return;
+			return;
 	}
 	if (revents & POLLOUT)
 		handleClientWrite(index);
@@ -238,16 +238,6 @@ void Server::handleClientEvent(size_t index)
 		handleClientWrite(index);
 }
 
-std::string createTestResponse()
-{
-	return "HTTP/1.1 200 OK\r\n"
-		   "Content-Length: 13\r\n"
-		   "Content-Type: text/plain\r\n"
-		   "Connection: keep-alive\r\n"
-		   "\r\n"
-		   "Hello, World!\r\n";
-}
-
 void Server::handleClientRead(size_t index)
 {
 	Client *client = findClient(_pollFds[index].fd);
@@ -265,26 +255,71 @@ void Server::handleClientRead(size_t index)
 		removeClient(index);
 		return;
 	}
+
 	if (result == -1)
 		return;
+
 	if (result == -2)
 	{
 		removeClient(index);
 		return;
 	}
-	try
-    {
-        client->getParser().process();
-    }
-    catch (const std::exception &e)
-    {
-        return;
-    }
 
-    if (client->getParser().getState() != RequestParser::COMPLETE)
-        return;
+	try
+	{
+		client->getParser().process();
+	}
+	catch (const std::exception &e)
+	{
+		std::cerr << "HTTP parse error: "
+				  << e.what()
+				  << std::endl;
+		return;
+	}
+
+	if (client->getParser().getState() != RequestParser::COMPLETE)
+		return;
+
+	const Request &request = client->getParser().getRequest();
 	
-    client->setResponse(createTestResponse());
+	ConfigServer *serverConfig =
+		findServerConfig(client->getServerPort());
+
+	if (serverConfig == NULL)
+	{
+		std::cerr << "No server config for port "
+				  << client->getServerPort()
+				  << std::endl;
+		return;
+	}
+
+	ConfigLocation *location =
+		findLocation(*serverConfig, request.getUri());
+
+	if (location == NULL)
+	{
+		std::cerr << "No location for URI: "
+				  << request.getUri()
+				  << std::endl;
+		return;
+	}
+
+	ResponseBuilder builder(request, *location);
+
+	HandlerResult handlerResult = builder.buildResponse();
+
+	if (handlerResult.isCgi)
+	{
+		
+		return;
+	}
+
+	std::string response;
+
+	response += handlerResult.staticResponse.getHeadersAsString();
+	response += handlerResult.staticResponse.getBody();
+
+	client->setResponse(response);
 
 	_pollFds[index].events |= POLLOUT;
 }
@@ -392,4 +427,59 @@ void Server::checkTimeouts()
 			}
 		}
 	}
+}
+
+ConfigServer *Server::findServerConfig(int port)
+{
+	for (size_t i = 0; i < _serverConfigs.size(); ++i)
+	{
+		if (_serverConfigs[i].port == port)
+			return &_serverConfigs[i];
+	}
+
+	return NULL;
+}
+
+ConfigLocation *Server::findLocation(ConfigServer &server,
+									 const std::string &uri)
+{
+	ConfigLocation *bestMatch = NULL;
+	size_t bestLength = 0;
+
+	for (size_t i = 0; i < server.locations.size(); ++i)
+	{
+		const ConfigLocation &location = server.locations[i];
+
+		if (location.path.empty())
+			continue;
+
+		bool match = false;
+
+		if (location.path == "/")
+		{
+			match = true;
+		}
+		else if (uri == location.path)
+		{
+			match = true;
+		}
+		else if (uri.compare(0, location.path.length(),
+								location.path) == 0)
+		{
+			if (location.path[location.path.length() - 1] == '/' ||
+				(uri.length() > location.path.length() && uri[location.path.length()] == '/')
+			)
+			{
+				match = true;
+			}
+		}
+
+		if (match && location.path.length() > bestLength)
+		{
+			bestMatch = &server.locations[i];
+			bestLength = location.path.length();
+		}
+	}
+
+	return bestMatch;
 }

@@ -21,7 +21,7 @@ static std::string getDefaultStatusMessage(int statusCode) {
     }
 }
 
-Response ResponseBuilder::handleError(const Request &req, int errorCode) {
+Response ResponseBuilder::handleError(int errorCode) {
 	Response res;
 	std::string statusMsg = getDefaultStatusMessage(errorCode);
 	
@@ -42,7 +42,7 @@ Response ResponseBuilder::handleError(const Request &req, int errorCode) {
 	res.setHeader("Content-Type", "text/html");
 	res.setHeader("Content-Length", Utils::toString(body.size()));
 
-	if (shouldCloseConnection(req, errorCode)) {
+	if (shouldCloseConnection(errorCode)) {
 		res.setHeader("Connection", "close");
 	} else {
 		res.setHeader("Connection", "keep-alive");

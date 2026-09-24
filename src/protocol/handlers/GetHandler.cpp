@@ -21,7 +21,7 @@ std::string readFile(const std::string &path) {
 
 //! Ambas funciones son para reducir lines en los handle
 //! Implementar en el resto del codigo
-Response ResponseBuilder::serveStaticFile(const Request &req, const std::string &filePath) {
+Response ResponseBuilder::serveStaticFile(const std::string &filePath) {
 	Response res;
 	std::string fileContent = readFile(filePath);
 
@@ -30,7 +30,7 @@ Response ResponseBuilder::serveStaticFile(const Request &req, const std::string 
 	res.setHeader("Content-Type", MimeTypes::getType(filePath));
 	res.setHeader("Content-Length", Utils::toString(fileContent.size()));
 	//! mira como hacer dependiendo si cliente sigue(keep-alive) o hace un close
-	if (shouldCloseConnection(req, 200)) {
+	if (shouldCloseConnection(200)) {
 		res.setHeader("Connection", "close");
 	} else {
 		res.setHeader("Connection", "keep-alive");
@@ -40,10 +40,9 @@ Response ResponseBuilder::serveStaticFile(const Request &req, const std::string 
 	return (res);
 }
 
-HandlerResult ResponseBuilder::handleGet(const Request &req, const std::string &path, const ConfigLocation &loc) {
+HandlerResult ResponseBuilder::handleGet() {
     HandlerResult result;
     struct stat statbuf;
-
     if (stat(path.c_str(), &statbuf) == -1) {
         if (errno == ENOENT) {
             result.staticResponse = buildErrorResponse(404, "Not Found");
@@ -64,7 +63,7 @@ HandlerResult ResponseBuilder::handleGet(const Request &req, const std::string &
 
         struct stat indexStat;
         if (stat(indexPath.c_str(), &indexStat) == 0 && S_ISREG(indexStat.st_mode)) {
-            result.staticResponse = serveStaticFile(req, indexPath);
+            result.staticResponse = serveStaticFile(indexPath);
             return (result);
         }
 		//! Mirar que es esto
@@ -78,7 +77,7 @@ HandlerResult ResponseBuilder::handleGet(const Request &req, const std::string &
     }
 
     if (S_ISREG(statbuf.st_mode)) {
-        std::string cgiBinary = getCgiBinary(path, loc);
+        std::string cgiBinary = getCgiBinary();
 
         if (!cgiBinary.empty()) {
             if (access(path.c_str(), R_OK) == -1 || access(cgiBinary.c_str(), X_OK) == -1) {
@@ -102,7 +101,7 @@ HandlerResult ResponseBuilder::handleGet(const Request &req, const std::string &
             return (result);
         }
         
-        result.staticResponse = serveStaticFile(req, path);
+        result.staticResponse = serveStaticFile(path);
         return (result);
     }
 
