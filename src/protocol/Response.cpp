@@ -1,6 +1,7 @@
 #include "protocol/Response.hpp"
 #include "protocol/Request.hpp"
 #include "protocol/HttpException.hpp"
+#include "Utils.hpp"
 
 Response::Response() :
 	//! No es lo correcto hardcodear la version
@@ -8,6 +9,8 @@ Response::Response() :
 	_statusCode(0),
 	_statusMessage(""),
 	_body("") {	
+
+	setHeader("Date", Utils::getCurrentDateGMT());
 }
 
 void Response::setVersion(const std::string &version) {

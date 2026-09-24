@@ -7,6 +7,8 @@
 #include <cstdlib>
 #include <cstring>
 #include <sstream>
+#include <fcntl.h>
+#include <cerrno>
 
 CgiHandler::CgiHandler() 
     : _pid(-1), _pipeIn(-1), _pipeOut(-1), 
@@ -25,6 +27,33 @@ void CgiHandler::cleanup() {
         close(_pipeOut);
         _pipeOut = -1;
     }
+	// Si el proceso hijo fue creado y aún tenemos su PID registrado
+	if (_pid > 0) {
+        // Le enviamos SIGKILL por si sigue vivo (seguridad extra)
+        kill(_pid, SIGKILL);
+        
+        // waitpid recoge el estado de salida. Esto es OBLIGATORIO en Unix 
+        // para que el SO libere el PID y no se quede como proceso zombi.
+        waitpid(_pid, NULL, 0); 
+        _pid = -1;
+    }
+}
+
+void CgiHandler::killCgi() {
+    if (_pid > 0) {
+        kill(_pid, SIGKILL);
+        waitpid(_pid, NULL, 0);
+        _pid = -1; // Marcamos como recogido
+    }
+    
+    // Cerramos pipes para que el event loop no intente leer más
+    if (_pipeIn != -1) { close(_pipeIn); _pipeIn = -1; }
+    if (_pipeOut != -1) { close(_pipeOut); _pipeOut = -1; }
+    
+    // Marcamos el estado para que buildCgiResponse sepa qué hacer
+    _isReadDone = true;
+    _isWriteDone = true;
+    _hasError = true;
 }
 
 int CgiHandler::getReadFd() const {
@@ -62,6 +91,12 @@ bool CgiHandler::createPipes(int pIn[2], int pOut[2]) {
         _hasError = true;
         return (false);
     }
+
+	fcntl(pIn[0], F_SETFL, O_NONBLOCK);
+    fcntl(pIn[1], F_SETFL, O_NONBLOCK);
+    fcntl(pOut[0], F_SETFL, O_NONBLOCK);
+    fcntl(pOut[1], F_SETFL, O_NONBLOCK);
+
     return (true);
 }
 
@@ -83,7 +118,7 @@ void CgiHandler::executeChild(int pIn[2], int pOut[2], const Request &req,
 
     freeCharArray(argv);
     freeCharArray(envp);
-    std::exit(EXIT_FAILURE);
+    _exit(127); // Es preferible _exit() dentro de un fork() que std::exit()
 }
 
 void CgiHandler::setupParent(int pIn[2], int pOut[2], const Request &req) {
@@ -147,6 +182,10 @@ void CgiHandler::writeToCgi() {
             _isWriteDone = true;
         }
     } else {
+		// Si no hay datos aún, salimos sin marcar error
+        if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            return; 
+        }
         close(_pipeIn);
         _pipeIn = -1;
         _isWriteDone = true;
@@ -169,6 +208,10 @@ void CgiHandler::readFromCgi() {
         _pipeOut = -1;
         _isReadDone = true;
     } else {
+		// Si no hay datos aún, salimos sin marcar error
+        if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            return; 
+        }
         close(_pipeOut);
         _pipeOut = -1;
         _isReadDone = true;
@@ -282,10 +325,12 @@ char** CgiHandler::buildEnv(const Request &req, const std::string &scriptPath) {
     envVector.push_back("REQUEST_METHOD=" + req.getMethod());
     envVector.push_back("SCRIPT_FILENAME=" + scriptPath);
     envVector.push_back("SCRIPT_NAME=" + req.getUri());
+	envVector.push_back("REDIRECT_STATUS=200");
 
     if (req.getMethod() == "GET") {
         envVector.push_back("QUERY_STRING=" + req.getQuery());
     } else if (req.getMethod() == "POST") {
+		envVector.push_back("QUERY_STRING=" + req.getQuery());
         const std::string *cType = req.getHeader("Content-Type");
         if (cType) {
             envVector.push_back("CONTENT_TYPE=" + *cType);

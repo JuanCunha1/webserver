@@ -1,4 +1,6 @@
 #include "../include/Utils.hpp"
+#include <ctime>
+#include <string>
 
 bool Utils::isAllUpper(const std::string& str) {
 	if (str.empty()) {
@@ -10,4 +12,17 @@ bool Utils::isAllUpper(const std::string& str) {
 		}
 	}
 	return true;
+}
+
+std::string Utils::getCurrentDateGMT() {
+    time_t rawtime;
+    struct tm * timeinfo;
+    char buffer[100];
+
+    time(&rawtime);
+    timeinfo = gmtime(&rawtime);
+
+    strftime(buffer, sizeof(buffer), "%a, %d %b %Y %H:%M:%S GMT", timeinfo);
+
+    return std::string(buffer);
 }

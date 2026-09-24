@@ -1,5 +1,6 @@
-#include "protocol/RequestParser.hpp"
-#include "protocol/ResponseBuilder.hpp"
+#include <iostream>
+#include "config/ConfigParser.hpp"
+#include "network/Server.hpp"
 #include <iostream>
 #include <exception>
 
@@ -15,8 +16,12 @@ int main(int argc, char *argv[])
 	{
 		ConfigParser parser;
 		parser.parseFile(argv[1]);
-		Server server(parser.getServers());
-		server.start();
+		std::vector<ConfigServer> serverConfigs = parser.getServers();
+		Server server;
+		std::vector<int> port;
+
+		port.push_back(serverConfigs[0].port);
+		server.start(port);
 		server.run();
 	}
 	catch (const std::exception &e)
