@@ -17,7 +17,7 @@ static std::string getParentDirectory(const std::string &path) {
 	return (path.substr(0, lastSlash));
 }
 
-HandlerResult ResponseBuilder::handleDelete(const Request &req, const std::string &path) {
+HandlerResult ResponseBuilder::handleDelete() {
     (void)req;
     HandlerResult result;
     struct stat statbuf;

@@ -8,6 +8,14 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+ResponseBuilder::ResponseBuilder(const Request &request, const ConfigLocation &location)
+	: req(request)
+	, loc(location)
+	, path("") {
+}
+
+ResponseBuilder::~ResponseBuilder() {
+}
 Response ResponseBuilder::buildErrorResponse(int code, const std::string &msg) {
 	Response res;
 	std::string defaultBody = "<html><body><h1>" + Utils::toString(code) + " " + msg + "</h1></body></html>";
@@ -22,7 +30,7 @@ Response ResponseBuilder::buildErrorResponse(int code, const std::string &msg) {
 	return (res);
 }
 
-bool ResponseBuilder::shouldCloseConnection(const Request &req, int statusCode) {
+bool ResponseBuilder::shouldCloseConnection(int statusCode) {
 	const std::string* conn = req.getHeader("connection");
 	if (conn && *conn == "close") {
 		return (true);
@@ -36,11 +44,12 @@ bool ResponseBuilder::shouldCloseConnection(const Request &req, int statusCode) 
 	return (false);
 }
 
-HandlerResult ResponseBuilder::buildResponse(const Request &req, const std::string &path, const ConfigLocation &loc) {
+HandlerResult ResponseBuilder::buildResponse( ) {
 	HandlerResult result;
 	const std::string& method = req.getMethod();
 
 	bool methodAllowed = false;
+	
 	for (size_t i = 0; i < loc.allowedMethods.size(); ++i) {
 		if (loc.allowedMethods[i] == method) {
 			methodAllowed = true;
@@ -49,23 +58,45 @@ HandlerResult ResponseBuilder::buildResponse(const Request &req, const std::stri
 	}
 	
 	if (!loc.allowedMethods.empty() && !methodAllowed) {
-		result.staticResponse = buildErrorResponse(405, "Method Not Allowed");
+		result.staticResponse = handleError(405);
 		return (result);
+	}
+	path = loc.locationRoot;
+
+	if (path.empty())
+		path = ".";
+
+	if (path[path.size() - 1] == '/')
+		path.erase(path.size() - 1);
+
+	std::string uri = req.getUri();
+
+	if (loc.path != "/" &&
+		uri.compare(0, loc.path.length(), loc.path) == 0)
+	{
+		uri = uri.substr(loc.path.length());
 	}
 
-	if (method == "GET") {
-		return (handleGet(req, path, loc));
-	} else if (method == "POST") {
-		return (handlePost(req, path, loc));
-	} else if (method == "DELETE") {
-		return (handleDelete(req, path));
-	} else {
-		result.staticResponse = handleError(req, 501);
-		return (result);
-	}
+	if (!uri.empty() && uri[0] != '/')
+		path += "/";
+
+	path += uri;
+
+	if (path.empty())
+		path = ".";
+
+	if (method == "GET")
+		return (handleGet());
+	if (method == "POST")
+		return (handlePost());
+	if (method == "DELETE")
+		return (handleDelete());
+
+	result.staticResponse = handleError(501);
+	return (result);
 }
 
-bool ResponseBuilder::isCgiRequest(const std::string &path, const ConfigLocation &loc) {
+bool ResponseBuilder::isCgiRequest() {
 	std::string::size_type dotPos = path.rfind('.');
 	if (dotPos == std::string::npos) {
 		return false;
@@ -83,7 +114,7 @@ bool ResponseBuilder::isCgiRequest(const std::string &path, const ConfigLocation
 	return (false);
 }
 
-std::string ResponseBuilder::getCgiBinary(const std::string &path, const ConfigLocation &loc) {
+std::string ResponseBuilder::getCgiBinary() {
 	std::string::size_type dotPos = path.rfind('.');
 	if (dotPos == std::string::npos) {
 		return ("");

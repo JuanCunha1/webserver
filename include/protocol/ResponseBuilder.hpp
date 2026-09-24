@@ -2,7 +2,7 @@
 
 #include "Request.hpp"
 #include "Response.hpp"
-#include "../config/ConfigServer.hpp"
+#include "config/ConfigServer.hpp"
 #include "CgiHandler.hpp"
 
 struct HandlerResult {
@@ -15,21 +15,27 @@ struct HandlerResult {
 
 class ResponseBuilder {
 	private:
-		static HandlerResult handleGet(const Request &req, const std::string &path, const ConfigLocation &loc);
-		static HandlerResult handlePost(const Request &req, const std::string &path, const ConfigLocation &loc);
-		static HandlerResult handleDelete(const Request &req, const std::string &path);
-		static Response serveStaticFile(const Request &req, const std::string &filePath);
-		static Response buildErrorResponse(int code, const std::string &msg);
-		static bool shouldCloseConnection(const Request &req, int statusCode);
+		Request			req;
+		ConfigLocation	loc;
+		std::string		path;
 
-		static Response handlePostDirect(const Request &req, const std::string &path);
+		HandlerResult handleGet();
+		HandlerResult handlePost();
+		HandlerResult handleDelete();
+		Response serveStaticFile(const std::string &filePath);
+		Response buildErrorResponse(int code, const std::string &msg);
+		bool shouldCloseConnection(int statusCode);
 
-		static bool	isCgiRequest(const std::string &path, const ConfigLocation &loc);
-		static std::string getCgiBinary(const std::string &path, const ConfigLocation &loc);
+		Response handlePostDirect();
+
+		bool	isCgiRequest();
+		std::string getCgiBinary();
 
 	public:
+		ResponseBuilder(const Request &request, const ConfigLocation &location);
+		~ResponseBuilder();
 		//! Para poderlo usar en el main lo pongo en public
-		static Response handleError(const Request &req, int errorCode);
+		Response handleError(int errorCode);
 		//* Esta función se va a encargar de montar la respuesta
-		static HandlerResult buildResponse(const Request &req, const std::string &path, const ConfigLocation &loc);
+		HandlerResult buildResponse();
 };

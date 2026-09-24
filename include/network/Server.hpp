@@ -12,6 +12,8 @@
 #include "protocol/Request.hpp"
 #include "protocol/RequestParser.hpp"
 #include "config/ConfigParser.hpp"
+#include "protocol/ResponseBuilder.hpp"
+#include "protocol/Response.hpp"
 
 class Client;
 class Socket;
@@ -44,6 +46,10 @@ class Server
         bool    isListeningSocket(int fd) const;
 		Socket	*findListeningSocket(int fd);
 		Client	*findClient(int fd);
+		
+		ConfigServer *findServerConfig(int port);
+		ConfigLocation *findLocation(ConfigServer &server,
+                             const std::string &uri);
 	public:
 		Server(std::vector<ConfigServer> serverConfigs);
 		~Server();

@@ -36,13 +36,11 @@ class Client
 		void setResponse(const std::string &response);
 
 		bool hasDataToSend() const;
-		bool hasDataToReceive() const;
 
 		const std::string &getRequest() const;
 
 		bool isTimedOut(std::time_t now, int timeout) const;
 
-		bool extractRequest(std::string &request);
 
 		RequestParser &getParser();
 		const RequestParser &getParser() const;

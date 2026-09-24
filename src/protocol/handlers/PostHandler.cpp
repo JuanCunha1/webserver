@@ -248,7 +248,7 @@ static bool parseAndSaveMultipart(const std::string &body, const std::string &bo
 }
 
 //* (cuando es text/plain)Guarda el body entero en el fichero indicado por la URL
-Response ResponseBuilder::handlePostDirect(const Request &req, const std::string &path) {
+Response ResponseBuilder::handlePostDirect() {
 	struct stat statbuf;
 	bool fileExisted = (stat(path.c_str(), &statbuf) == 0);
 
@@ -277,7 +277,7 @@ Response ResponseBuilder::handlePostDirect(const Request &req, const std::string
 		std::string responseBody = "<html><body><h1>201 Created</h1><p>Resource created successfully.</p></body></html>";
 		res.setHeader("Content-Type", "text/html");
 		res.setHeader("Content-Length", Utils::toString(responseBody.size()));
-		if (shouldCloseConnection(req, 200)) {
+		if (shouldCloseConnection(200)) {
 			res.setHeader("Connection", "close");
 		} else {
 			res.setHeader("Connection", "keep-alive");
@@ -290,7 +290,7 @@ Response ResponseBuilder::handlePostDirect(const Request &req, const std::string
 		std::string responseBody = "<html><body><h1>200 OK</h1><p>Resource updated successfully.</p></body></html>";
 		res.setHeader("Content-Type", "text/html");
 		res.setHeader("Content-Length", Utils::toString(responseBody.size()));
-		if (shouldCloseConnection(req, 200)) {
+		if (shouldCloseConnection(200)) {
 			res.setHeader("Connection", "close");
 		} else {
 			res.setHeader("Connection", "keep-alive");
@@ -301,11 +301,11 @@ Response ResponseBuilder::handlePostDirect(const Request &req, const std::string
 	return (res);
 }
 
-HandlerResult ResponseBuilder::handlePost(const Request &req, const std::string &path, const ConfigLocation &loc) {
+HandlerResult ResponseBuilder::handlePost() {
     HandlerResult result;
 
-    if (isCgiRequest(path, loc)) {
-        std::string cgiBinary = getCgiBinary(path, loc);
+    if (isCgiRequest()) {
+        std::string cgiBinary = getCgiBinary();
         if (!cgiBinary.empty()) {
             if (access(path.c_str(), R_OK) == -1 || access(cgiBinary.c_str(), X_OK) == -1) {
                 result.staticResponse = buildErrorResponse(403, "Forbidden");
@@ -324,8 +324,7 @@ HandlerResult ResponseBuilder::handlePost(const Request &req, const std::string 
         }
     }
 
-    const std::string *contentType = req.getHeader("Content-Type");
-
+    const std::string *contentType = req.getHeader("content-type");
     if (contentType != NULL && contentType->find("multipart/form-data") != std::string::npos) {
         std::string boundary = extractBoundary(*contentType);
         std::vector<std::string> savedFilenames;
@@ -353,7 +352,7 @@ HandlerResult ResponseBuilder::handlePost(const Request &req, const std::string 
         std::string msg = "<html><body><h1>Procesado correctamente</h1></body></html>";
         res.setHeader("Content-Type", "text/html");
         res.setHeader("Content-Length", Utils::toString(msg.size()));
-        if (shouldCloseConnection(req, 200)) {
+        if (shouldCloseConnection(200)) {
 			res.setHeader("Connection", "close");
 		} else {
 			res.setHeader("Connection", "keep-alive");
@@ -374,7 +373,7 @@ HandlerResult ResponseBuilder::handlePost(const Request &req, const std::string 
         std::string msg = "<html><body><h1>Formulario procesado correctamente</h1></body></html>";
         res.setHeader("Content-Type", "text/html");
         res.setHeader("Content-Length", Utils::toString(msg.size()));
-        if (shouldCloseConnection(req, 200)) {
+        if (shouldCloseConnection(200)) {
 			res.setHeader("Connection", "close");
 		} else {
 			res.setHeader("Connection", "keep-alive");
@@ -385,6 +384,6 @@ HandlerResult ResponseBuilder::handlePost(const Request &req, const std::string 
         return (result);
     }
 
-    result.staticResponse = handlePostDirect(req, path);
+    result.staticResponse = handlePostDirect();
     return (result);
 }

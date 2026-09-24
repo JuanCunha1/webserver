@@ -67,5 +67,6 @@ class RequestParser {
 
 		void append(const std::string &data);
 		void process();
+		Request &getRequest();
 		State getState() const;
 };
