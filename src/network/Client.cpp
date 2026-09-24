@@ -1,21 +1,21 @@
 #include "network/Client.hpp"
 
-Client::Client(int fd, int serverPort)
+Client::Client(int fd, int serverPort, size_t maxBodySize)
 	: _fd(fd), _serverPort(serverPort), _lastActivity(std::time(NULL))
-	, _requestBuffer(""), _responseBuffer("")
+	, _parser(maxBodySize), _responseBuffer("")
 {
 }
 
 Client::Client()
 	: _fd(-1), _serverPort(-1), _lastActivity(std::time(NULL))
-	, _requestBuffer(""), _responseBuffer("")
+	, _parser(1024), _responseBuffer("")
 {
 }
 
 Client::Client(const Client &other)
 	: _fd(other._fd)
 	, _lastActivity(other._lastActivity)
-	, _requestBuffer(other._requestBuffer)
+	, _parser(other._parser)
 	, _responseBuffer(other._responseBuffer)
 	
 {
@@ -27,7 +27,7 @@ Client &Client::operator=(const Client &other)
 	{
 		_fd = other._fd;
 		_lastActivity = other._lastActivity;
-		_requestBuffer = other._requestBuffer;
+		_parser = other._parser;
 		_responseBuffer = other._responseBuffer;
 		
 	}
@@ -50,7 +50,7 @@ int Client::getFd() const
 	return _fd;
 }
 
-bool Client::receive()
+int Client::receive()
 {
 	char buffer[4096];
 
@@ -63,32 +63,18 @@ bool Client::receive()
 
 	if (bytesRead > 0)
 	{
-		_requestBuffer.append(buffer, bytesRead);
+		_parser.append(std::string(buffer, bytesRead));
 		_lastActivity = std::time(NULL);
-		return true;
+		return bytesRead;
 	}
 
 	if (bytesRead == 0)
-		return false;
+		return 0;
 
 	if (errno == EAGAIN || errno == EWOULDBLOCK)
-		return true;
+		return -1;
 
-	return false;
-}
-
-bool Client::extractRequest(std::string &request)
-{
-	std::string::size_type end =
-		_requestBuffer.find("\r\n\r\n");
-	if (end == std::string::npos)
-		return false;
-	end += 4;
-
-	request = _requestBuffer.substr(0, end);
-	_requestBuffer.erase(0, end);
-
-	return true;
+	return -2;
 }
 
 void Client::setResponse(const std::string &response)
@@ -101,39 +87,44 @@ bool Client::hasDataToSend() const
 	return !_responseBuffer.empty();
 }
 
-bool Client::sendData()
+int Client::sendData()
 {
 	if (_responseBuffer.empty())
-		return true;
+		return 0;
 
-	int bytesSent = send(
+	ssize_t bytesSent = send(
 		_fd,
 		_responseBuffer.c_str(),
 		_responseBuffer.size(),
-		0);
+		0
+	);
+
 	if (bytesSent > 0)
 	{
 		_responseBuffer.erase(0, bytesSent);
 		_lastActivity = std::time(NULL);
-		return true;
+		return static_cast<int>(bytesSent);
 	}
-	if (bytesSent <= -1)
+
+	if (bytesSent == -1)
 	{
 		if (errno == EAGAIN || errno == EWOULDBLOCK)
-			return true;
-		return false;
+			return 0;
+
+		return -1;
 	}
-	return false;
+
+	return -1;
 }
 
-const std::string &Client::getRequest() const
+RequestParser &Client::getParser()
 {
-	return _requestBuffer;
+    return _parser;
 }
 
-bool Client::hasDataToReceive() const
+const RequestParser &Client::getParser() const
 {
-	return !_requestBuffer.empty();
+    return _parser;
 }
 
 bool Client::isTimedOut(std::time_t now, int timeout) const

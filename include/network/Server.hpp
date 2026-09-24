@@ -11,11 +11,12 @@
 #include <poll.h>
 #include "protocol/Request.hpp"
 #include "protocol/RequestParser.hpp"
+#include "config/ConfigParser.hpp"
 
 class Client;
 class Socket;
 
-static const int CLIENT_TIMEOUT = 5;
+static const int CLIENT_TIMEOUT = 60;
 
 class Server
 {
@@ -23,14 +24,13 @@ class Server
 		std::vector<Socket *>		_sockets;
 		std::vector<Client *>		_clients;
 		std::vector<struct pollfd>	_pollFds;
-		Request _request;
-		RequestParser::State _state;
+        std::vector<ConfigServer>   _serverConfigs;
 		
-		
+		Server();
 		Server(const Server &other);
 		Server &operator=(const Server &other);
 
-		void	addClient(size_t index);
+		void	addClient(size_t socketIndex);
 		void	removeClient(size_t index);
 
 		void	handlePollEvent(size_t index);
@@ -38,16 +38,18 @@ class Server
 		void	handleClientEvent(size_t index);
 		void	handleClientRead(size_t index);
 		void	handleClientWrite(size_t index);
-
+        void    handleServerError(size_t index);
+    
 		void	addListeningSocket(Socket *socket);
+        bool    isListeningSocket(int fd) const;
 		Socket	*findListeningSocket(int fd);
 		Client	*findClient(int fd);
 	public:
-		Server();
+		Server(std::vector<ConfigServer> serverConfigs);
 		~Server();
 
 		void checkTimeouts();
 
-		void start(const std::vector<int> &ports);
+		void start();
 		void run();
 };
