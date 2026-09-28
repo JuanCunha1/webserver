@@ -3,6 +3,7 @@
 #include "ConfigServer.hpp"
 #include <vector>
 #include <string>
+#include "../../include/config/UrlMatcher.hpp"
 
 class UrlMatcher
 {

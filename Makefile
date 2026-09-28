@@ -14,8 +14,6 @@ NETWORK_SRCS = \
 	$(SRC_DIR)/network/Socket.cpp \
 	$(SRC_DIR)/network/Server.cpp \
 	$(SRC_DIR)/network/Client.cpp \
-	$(SRC_DIR)/network/ServerManager.cpp \
-
 
 
 # Archivos comunes que necesitan tanto el servidor como los tests
@@ -39,6 +37,7 @@ CORE_SRCS = \
 CONFIG_SRCS = \
 	$(SRC_DIR)/config/ConfigServer.cpp \
 	$(SRC_DIR)/config/ConfigParser.cpp \
+	$(SRC_DIR)/config/UrlMatcher.cpp \
 	$(SRC_DIR)/config/ConfigParserPost.cpp \
 	$(SRC_DIR)/config/ConfigParserPrevious.cpp \
 	$(SRC_DIR)/config/ConfigParserTokensBlocks.cpp \
