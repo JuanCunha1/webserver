@@ -11,6 +11,7 @@
 #include <poll.h>
 #include "protocol/Request.hpp"
 #include "protocol/RequestParser.hpp"
+#include "protocol/HttpException.hpp"
 #include "config/ConfigParser.hpp"
 #include "protocol/ResponseBuilder.hpp"
 #include "protocol/Response.hpp"

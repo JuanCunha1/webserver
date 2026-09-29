@@ -292,15 +292,30 @@ void Server::handleClientRead(size_t index)
 		return;
 	}
 
+	//! He actualizado esta parte porque era insuficiente cuando habia un error de parseo
+	//! No se construia una respuesta
 	try
 	{
 		client->getParser().process();
 	}
+	catch (const HttpException &e)
+	{
+		std::cerr << "HTTP parse error: " << e.what() << " (Code: " << e.getStatusCode() << ")" << std::endl;
+
+		Response errorRes = ResponseBuilder::buildErrorResponse(e.getStatusCode(), e.what());
+		std::string responseString = errorRes.getHeadersAsString() + errorRes.getBody();
+
+		client->setResponse(responseString);
+
+		//* Despertar a poll() para que escriba la respuesta al cliente
+		_pollFds[index].events |= POLLOUT;
+		return;
+	}
+	//* para casos en los que no sera un error de parseo (igual se puede eliminar)
 	catch (const std::exception &e)
 	{
-		std::cerr << "HTTP parse error: "
-				  << e.what()
-				  << std::endl;
+		std::cerr << "Unknown parse error: " << e.what() << std::endl;
+		removeClient(index);
 		return;
 	}
 

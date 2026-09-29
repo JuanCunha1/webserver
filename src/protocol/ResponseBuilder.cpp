@@ -16,6 +16,7 @@ ResponseBuilder::ResponseBuilder(const Request &request, const ConfigLocation &l
 
 ResponseBuilder::~ResponseBuilder() {
 }
+
 Response ResponseBuilder::buildErrorResponse(int code, const std::string &msg) {
 	Response res;
 	std::string defaultBody = "<html><body><h1>" + Utils::toString(code) + " " + msg + "</h1></body></html>";

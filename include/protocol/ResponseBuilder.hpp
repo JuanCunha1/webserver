@@ -23,7 +23,7 @@ class ResponseBuilder {
 		HandlerResult handlePost();
 		HandlerResult handleDelete();
 		Response serveStaticFile(const std::string &filePath);
-		Response buildErrorResponse(int code, const std::string &msg);
+		
 		bool shouldCloseConnection(int statusCode);
 
 		Response handlePostDirect();
@@ -36,6 +36,8 @@ class ResponseBuilder {
 		~ResponseBuilder();
 		//! Para poderlo usar en el main lo pongo en public
 		Response handleError(int errorCode);
+		//! Para poder usar en server
+		static Response buildErrorResponse(int code, const std::string &msg);
 		//* Esta función se va a encargar de montar la respuesta
 		HandlerResult buildResponse();
 };
