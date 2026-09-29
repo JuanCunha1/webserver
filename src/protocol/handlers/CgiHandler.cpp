@@ -161,10 +161,11 @@ bool CgiHandler::initCgi(const Request &req, const std::string &scriptPath, cons
     } else {
         setupParent(pIn, pOut, req);
     }
+	/*
 	std::cout << "[DEBUG] CGI Forked -> PID: " << _pid 
           << " | PipeIn (Escribir): " << _pipeIn 
           << " | PipeOut (Leer): " << _pipeOut << std::endl;
-
+	*/
     return (true);
 }
 
@@ -307,7 +308,7 @@ Response CgiHandler::buildCgiResponse() {
     res.setBody(bodyPart);
     res.setHeader("Content-Length", Utils::toString(bodyPart.size()));
 
-	std::cout << "[HTTP CGI] Respuesta generada con " << bodyPart.size() << " bytes de body." << std::endl;
+	//std::cout << "[HTTP CGI] Respuesta generada con " << bodyPart.size() << " bytes de body." << std::endl;
     return (res);
 }
 

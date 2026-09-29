@@ -124,13 +124,15 @@ void Server::run()
 				++i;
 				continue;
 			}
+			/*
 			// --- AÑADE ESTO AQUÍ ---
         	for (size_t k = 0; k < _pollFds.size(); ++k) {
            		if (_pollFds[k].revents != 0) {
                 	std::cout << "[POLL] FD " << _pollFds[k].fd << " despertó con revents: " << _pollFds[k].revents << std::endl;
             	}
        		}
-        // -----------------------
+       		// -----------------------
+			*/
 
 			size_t oldSize = _pollFds.size();
 
@@ -188,9 +190,9 @@ void Server::handlePollEvent(size_t index)
 	int fd = _pollFds[index].fd;
 	short revents = _pollFds[index].revents;
 
-	// --- AÑADE ESTO AQUÍ ---
+	/*
     std::cout << "[ROUTER] Evaluando FD " << fd << " | ¿Es CGI?: " << (isCgiFd(fd) ? "SI" : "NO") << std::endl;
-    // -----------------------
+    */
 
 	if (isListeningSocket(fd))
 	{
@@ -420,10 +422,10 @@ void Server::handleClientWrite(size_t index)
 		removeClient(index);
 		return;
 	}
-	
+	/*
 	std::cout << "[DEBUG HTTP] Intentando enviar " << client->getResponseBuffer().size() 
           << " bytes al cliente FD " << client->getFd() << std::endl;
-
+	*/
 	int result = client->sendData();
 	if (result < 0)
 	{
@@ -617,14 +619,14 @@ void Server::handleCgiEvent(size_t index)
 	int fd = _pollFds[index].fd;
 	short revents = _pollFds[index].revents;
 	Client* client = getClientByCgiFd(fd);
-
+	/*
 	std::cout << "[DEBUG POLL] Evento en FD: " << fd 
           << " | revents: " << revents 
           << " (IN=" << (revents & POLLIN)
           << ", OUT=" << (revents & POLLOUT)
           << ", HUP=" << (revents & POLLHUP)
           << ", ERR=" << (revents & POLLERR) << ")\n";
-
+	*/
 	if (client == NULL) {
 		close(fd);
 		_pollFds.erase(_pollFds.begin() + index);
