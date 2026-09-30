@@ -19,6 +19,9 @@ Causa: src/network/Server.cpp:293-303. Cuando RequestParser::process() lanza la 
 
 3. Keep-alive roto: la 2ª petición en la misma conexión repite la 1ª
 
+Probar:
+(printf "GET /index.html HTTP/1.1\r\nHost: localhost\r\n\r\n"; sleep 1; printf "GET /error.html HTTP/1.1\r\nHost: localhost\r\n\r\n"; sleep 1) | nc localhost 8080
+
 python3 - <<'EOF'
 import socket, time
 s = socket.create_connection(("127.0.0.1", 8080), timeout=3)

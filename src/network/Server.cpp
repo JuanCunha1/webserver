@@ -319,8 +319,10 @@ void Server::handleClientRead(size_t index)
 		return;
 	}
 
-	if (client->getParser().getState() != RequestParser::COMPLETE)
+	if (client->getParser().getState() != RequestParser::COMPLETE) {
+		std::cout << "AAAAAAAAA" << std::endl;
 		return;
+	}
 
 	const Request &request = client->getParser().getRequest();
 	
@@ -448,6 +450,8 @@ void Server::handleClientWrite(size_t index)
 		return;
 	}
 	_pollFds[index].events = POLLIN;
+
+	client->getParser().reset();
 	/*
 	// Solo volvemos a escuchar si ya vaciamos todo el buffer de salida
     if (client->hasDataToSend()) {
