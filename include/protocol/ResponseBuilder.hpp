@@ -4,6 +4,7 @@
 #include "Response.hpp"
 #include "config/ConfigServer.hpp"
 #include "CgiHandler.hpp"
+#include <vector>
 
 struct HandlerResult {
     bool isCgi;
@@ -25,11 +26,12 @@ class ResponseBuilder {
 		Response serveStaticFile(const std::string &filePath);
 		
 		bool shouldCloseConnection(int statusCode);
-
 		Response handlePostDirect();
 
 		bool	isCgiRequest();
 		std::string getCgiBinary();
+		
+		std::string normalizeUri(const std::string& uri);
 
 	public:
 		ResponseBuilder(const Request &request, const ConfigLocation &location);

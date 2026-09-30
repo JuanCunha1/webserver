@@ -57,7 +57,7 @@ Te devuelve el contenido de tu propio Makefile (fuera de www/). Con DELETE serí
 
 Causa: src/protocol/ResponseBuilder.cpp (buildResponse(), alrededor de la línea 64-83): path = loc.locationRoot + uri sin normalizar ni comprobar que el resultado siga dentro del root.
 
-6, 6b y 6c. return (redirect), error_page y autoindex se parsean pero no se aplican
+6. (a b y c) return (redirect), error_page y autoindex se parsean pero no se aplican
 
 Tu config.conf no usa estas directivas, así que para verlo arranca el config de pruebas que ya dejé listo:
 cd /home/gfuster/TesteoWebServer/webserv_tester
