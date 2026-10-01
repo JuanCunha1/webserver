@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebServ 42 - Checklist de Evaluación Completa</title>
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --text-color: #c9d1d9;
+            --accent-color: #58a6ff;
+            --card-bg: #161b22;
+            --border-color: #30363d;
+            --success-color: #238636;
+            --code-bg: #010409;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h1, h2 { color: #fff; }
+        .progress-container {
+            position: sticky;
+            top: 0;
+            background-color: var(--bg-color);
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border-color);
+            z-index: 100;
+        }
+        progress {
+            width: 100%;
+            height: 20px;
+            accent-color: var(--success-color);
+        }
+        .section {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        .task {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .task:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+        input[type="checkbox"] {
+            margin-top: 5px;
+            margin-right: 15px;
+            transform: scale(1.5);
+            accent-color: var(--success-color);
+            cursor: pointer;
+        }
+        .task-content { flex: 1; }
+        .task-title { font-weight: bold; font-size: 1.1em; margin-bottom: 5px; color: #fff; }
+        .command-box {
+            display: flex;
+            background: var(--code-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 10px;
+            margin-top: 10px;
+            align-items: center;
+        }
+        code {
+            font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+            flex: 1;
+            color: #79c0ff;
+            word-break: break-all;
+        }
+        .copy-btn {
+            background: var(--border-color);
+            color: var(--text-color);
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-left: 10px;
+            transition: background 0.2s;
+        }
+        .copy-btn:hover { background: #8b949e; color: #fff; }
+        .copy-btn.copied { background: var(--success-color); color: #fff; }
+    </style>
+</head>
+<body>
+
+    <h1>✅ WebServ 42 - Checklist de Evaluación Extensa</h1>
+    
+    <div class="progress-container">
+        <label for="eval-progress">Progreso: <span id="progress-text">0%</span></label>
+        <progress id="eval-progress" value="0" max="100"></progress>
+    </div>
+
+    <div class="section" id="checklist-container">
+        <!-- Generado dinámicamente -->
+    </div>
+
+    <script>
+        const tasks = [
+            {
+                section: "1. Preparación y README",
+                items: [
+                    { title: "Verificación del README.md", desc: "El archivo README.md debe contener la primera línea en cursiva con el formato específico, una sección de Descripción, Instrucciones y Recursos detallando el uso de IA[cite: 6, 7].", cmd: "cat README.md" },
+                    { title: "Comprobación del Makefile", desc: "El Makefile debe contener al menos las reglas NAME, all, clean, fclean y re sin realizar relinking innecesario[cite: 7].", cmd: "make re && make clean" }
+                ]
+            },
+            {
+                section: "2. Arquitectura de Red y Multiplexación",
+                items: [
+                    { title: "Mecanismo de Eventos Único", desc: "El servidor debe utilizar un único poll() (o equivalente) para todas las operaciones de E/S, monitorizando lectura y escritura simultáneamente[cite: 6, 7].", cmd: "grep -E \"poll\\(|epoll|select|kqueue\" src/*.cpp" },
+                    { title: "Control de I/O No Bloqueante", desc: "Nunca se debe realizar una operación de lectura o escritura sin pasar previamente por poll()[cite: 6, 7]. Las I/O en descriptores orientados a eventos deben ocurrir solo cuando se indica que están listos[cite: 6].", cmd: "grep -E \"read\\(|recv\\(|write\\(|send\\(\" src/*.cpp" },
+                    { title: "Gestión de Errores de Sockets", desc: "Verificar que el valor devuelto por read/recv/write/send se maneja correctamente, eliminando al cliente si ocurre un error (-1) o si devuelve 0[cite: 6].", cmd: "grep -A 5 -E \"recv\\(|read\\(\" src/*.cpp" },
+                    { title: "Restricción de Errno", desc: "Está estrictamente prohibido comprobar el valor de errno después de leer o escribir para ajustar el comportamiento de control de flujo del servidor[cite: 6, 7].", cmd: "grep -i \"errno\" src/*.cpp" }
+                ]
+            },
+            {
+                section: "3. Configuración de Servidores y Puertos",
+                items: [
+                    { title: "Múltiples interfaces y puertos", desc: "El servidor debe poder escuchar en múltiples pares de interfaz:puerto para ofrecer diferentes sitios web[cite: 6, 7].", cmd: "curl -v http://localhost:8080/ && curl -v http://localhost:8081/" },
+                    { title: "Múltiples webs en el mismo puerto", desc: "Configurar múltiples sitios web en la misma interfaz y puerto debe resultar en un error a menos que se implementen hosts virtuales[cite: 6].", cmd: "curl -v -H \"Host: misitio.local\" http://localhost:8080/" },
+                    { title: "Servidor por defecto", desc: "Si no se implementan hosts virtuales o el host no coincide, se debe servir el sitio adecuado[cite: 6].", cmd: "curl -v -H \"Host: hostdesconocido\" http://localhost:8080/" },
+                    { title: "Instancias múltiples del binario", desc: "Lanzar múltiples programas webserv con diferentes configuraciones pero con puertos comunes debe gestionarse sin cierres inesperados (crashes)[cite: 6].", cmd: "./webserv config1.conf & ./webserv config2.conf" }
+                ]
+            },
+            {
+                section: "4. Enrutamiento y Métodos HTTP",
+                items: [
+                    { title: "Páginas de Error (Ej. 404)", desc: "El servidor debe tener páginas de error por defecto si no se proporcionan, y permitir configurar páginas personalizadas[cite: 6, 7].", cmd: "curl -v http://localhost:8080/ruta_inexistente" },
+                    { title: "Límite del Body (413 Payload Too Large)", desc: "Se debe limitar el tamaño máximo permitido para el cuerpo de la petición del cliente[cite: 6, 7].", cmd: "curl -v -X POST -H \"Content-Type: text/plain\" --data \"Este texto debe superar el limite\" http://localhost:8080/" },
+                    { title: "Rutas y directorios de archivos", desc: "Establecer reglas para enrutar una URL al directorio correcto donde se encuentra el archivo[cite: 6, 7].", cmd: "curl -v http://localhost:8080/directorio_configurado/archivo.html" },
+                    { title: "Archivo por defecto (index)", desc: "Establecer un archivo por defecto para servir cuando se solicita un directorio[cite: 6, 7].", cmd: "curl -v http://localhost:8080/directorio_con_index/" },
+                    { title: "Listado de directorios (Autoindex)", desc: "Habilitar o deshabilitar el listado de directorios al solicitar una ruta[cite: 6, 7].", cmd: "curl -v http://localhost:8080/directorio_autoindex/" },
+                    { title: "Redirección HTTP", desc: "El archivo de configuración debe poder especificar redirecciones HTTP para una ruta[cite: 7]. Probar URL redirigida[cite: 6].", cmd: "curl -vL http://localhost:8080/ruta_antigua" },
+                    { title: "Métodos Permitidos por ruta", desc: "Especificar una lista de métodos aceptados para una ruta concreta[cite: 7]. Probar método DELETE con y sin permisos[cite: 6].", cmd: "curl -v -X DELETE http://localhost:8080/ruta_protegida/archivo.txt" },
+                    { title: "Método no reconocido (UNKNOWN)", desc: "Las peticiones UNKNOWN no deben causar que el servidor se cierre de forma inesperada[cite: 6].", cmd: "curl -v -X INVENTADO http://localhost:8080/" }
+                ]
+            },
+            {
+                section: "5. Subida de Archivos (Uploads)",
+                items: [
+                    { title: "Subida de archivos por POST", desc: "Los clientes deben poder subir archivos al servidor y la ubicación de almacenamiento debe estar configurada[cite: 6, 7].", cmd: "curl -v -X POST --data-binary \"Contenido de prueba\" http://localhost:8080/uploads/prueba.txt" },
+                    { title: "Recuperación del archivo", desc: "Recuperar los archivos subidos al servidor mediante GET[cite: 6].", cmd: "curl -v http://localhost:8080/uploads/prueba.txt" }
+                ]
+            },
+            {
+                section: "6. Ejecución de CGI",
+                items: [
+                    { title: "Ejecución basada en extensión", desc: "La ejecución del CGI debe basarse en la extensión del archivo[cite: 7].", cmd: "curl -v http://localhost:8080/script.py" },
+                    { title: "Directorio de ejecución", desc: "El CGI debe ejecutarse en el directorio correcto para permitir el acceso a archivos mediante rutas relativas[cite: 6, 7].", cmd: "curl -v http://localhost:8080/cgi-bin/cwd_test.py" },
+                    { title: "Variables de entorno y args", desc: "La solicitud completa y los argumentos proporcionados por el cliente deben estar disponibles para el CGI a través de variables de entorno[cite: 7]. Probar con método GET[cite: 6].", cmd: "curl -v \"http://localhost:8080/script.py?param1=valor&param2=test\"" },
+                    { title: "Procesamiento POST (stdin)", desc: "Probar el CGI con el método POST para verificar la transmisión del cuerpo de la petición[cite: 6].", cmd: "curl -v -X POST -d \"datos=importantes\" http://localhost:8080/script.py" },
+                    { title: "Manejo de errores CGI (Bucle Infinito)", desc: "Probar archivos CGI que contengan errores o un bucle infinito; el servidor nunca debe cerrarse inesperadamente y debe mostrar un error[cite: 6].", cmd: "curl -v http://localhost:8080/infinito.py" },
+                    { title: "Descompresión de Chunked", desc: "Para peticiones fragmentadas (chunked), el servidor debe unirlas antes de pasarlas, y el CGI esperará EOF como fin del cuerpo[cite: 7].", cmd: "curl -v -X POST -H \"Transfer-Encoding: chunked\" --data-binary \"test\" http://localhost:8080/script.py" }
+                ]
+            },
+            {
+                section: "7. Pruebas de Estrés y Resiliencia",
+                items: [
+                    { title: "Prueba de Carga (Siege)", desc: "La disponibilidad debe ser superior al 99.5% para una petición GET simple usando siege con la bandera -b[cite: 6].", cmd: "siege -b -c 100 -t 30s http://localhost:8080/" },
+                    { title: "Verificación de Fugas de Memoria", desc: "El uso de la memoria del proceso no debe aumentar indefinidamente, y toda memoria asignada en el heap debe liberarse adecuadamente usando herramientas como valgrind[cite: 6].", cmd: "valgrind --leak-check=full ./webserv config.conf" },
+                    { title: "Conexiones Colgadas (Hanging Connections)", desc: "Comprobar que no hay conexiones colgadas y que se pueden usar pruebas de estrés indefinidamente sin reiniciar el servidor[cite: 6].", cmd: "valgrind --track-fds=yes ./webserv config.conf" },
+                    { title: "Prevención de cuelgues (Client Disconnection)", desc: "El servidor debe mantener un estado no bloqueante y gestionar correctamente las desconexiones de clientes cuando sea necesario[cite: 7].", cmd: "(printf \"GET / HT\"; sleep 2) | nc localhost 8080" }
+                ]
+            },
+            {
+                section: "8. Bonus",
+                items: [
+                    { title: "Cookies y Sesiones", desc: "El servidor web cuenta con un sistema funcional de sesiones y cookies[cite: 6, 7].", cmd: "curl -v -H \"Cookie: session_id=12345\" http://localhost:8080/perfil" },
+                    { title: "Soporte Multi-CGI", desc: "El servidor web soporta múltiples sistemas CGI, no solo uno[cite: 6, 7].", cmd: "curl -v http://localhost:8080/script.php && curl -v http://localhost:8080/script.py" }
+                ]
+            }
+        ];
+
+        const container = document.getElementById('checklist-container');
+        let totalItems = 0;
+
+        tasks.forEach((section, sIndex) => {
+            const sectionEl = document.createElement('div');
+            sectionEl.innerHTML = `<h2>${section.section}</h2>`;
+            
+            section.items.forEach((item, iIndex) => {
+                totalItems++;
+                const taskId = `task-${sIndex}-${iIndex}`;
+                
+                const taskEl = document.createElement('div');
+                taskEl.className = 'task';
+                taskEl.innerHTML = `
+                    <input type="checkbox" id="${taskId}" onchange="updateProgress()">
+                    <div class="task-content">
+                        <div class="task-title">${item.title}</div>
+                        <div>${item.desc}</div>
+                        <div class="command-box">
+                            <code id="cmd-${taskId}">${item.cmd}</code>
+                            <button class="copy-btn" onclick="copyCmd('cmd-${taskId}', this)">Copiar</button>
+                        </div>
+                    </div>
+                `;
+                sectionEl.appendChild(taskEl);
+            });
+            container.appendChild(sectionEl);
+        });
+
+        // Restaurar estado guardado
+        document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+            const saved = localStorage.getItem(cb.id);
+            if (saved === 'true') cb.checked = true;
+        });
+        updateProgress();
+
+        function updateProgress() {
+            const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+            let checked = 0;
+            checkboxes.forEach(cb => {
+                if (cb.checked) checked++;
+                localStorage.setItem(cb.id, cb.checked);
+            });
+            
+            const percent = Math.round((checked / totalItems) * 100);
+            document.getElementById('eval-progress').value = percent;
+            document.getElementById('progress-text').innerText = `${percent}%`;
+        }
+
+        function copyCmd(cmdId, btn) {
+            const text = document.getElementById(cmdId).innerText;
+            navigator.clipboard.writeText(text).then(() => {
+                btn.innerText = "¡Copiado!";
+                btn.classList.add('copied');
+                setTimeout(() => {
+                    btn.innerText = "Copiar";
+                    btn.classList.remove('copied');
+                }, 2000);
+            });
+        }
+    </script>
+</body>
+</html>

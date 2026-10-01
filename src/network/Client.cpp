@@ -2,13 +2,15 @@
 
 Client::Client(int fd, int serverPort, size_t maxBodySize)
 	: _fd(fd), _serverPort(serverPort), _lastActivity(std::time(NULL))
-	, _parser(maxBodySize), _responseBuffer("")
+	, _parser(maxBodySize), _responseBuffer(""), _state(READING)
+	, _cgiHandler(NULL)
 {
 }
 
 Client::Client()
 	: _fd(-1), _serverPort(-1), _lastActivity(std::time(NULL))
-	, _parser(1024), _responseBuffer("")
+	, _parser(1024), _responseBuffer(""), _state(READING)
+	, _cgiHandler(NULL)
 {
 }
 
@@ -38,6 +40,10 @@ Client::~Client()
 {
 	if (_fd != -1)
 		close(_fd);
+
+	//! Creo que debo hacerlo
+	delete _cgiHandler;
+	_cgiHandler = NULL;
 }
 
 int Client::getServerPort() const

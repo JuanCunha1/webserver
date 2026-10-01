@@ -17,5 +17,7 @@ public:
 	static bool isAllUpper(const std::string& str);
 
 	static std::string getCurrentDateGMT();
+
+	static std::string urlDecode(const std::string& str);
 };
 #include "Utils.tpp"

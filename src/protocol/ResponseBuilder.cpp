@@ -16,6 +16,7 @@ ResponseBuilder::ResponseBuilder(const Request &request, const ConfigLocation &l
 
 ResponseBuilder::~ResponseBuilder() {
 }
+
 Response ResponseBuilder::buildErrorResponse(int code, const std::string &msg) {
 	Response res;
 	std::string defaultBody = "<html><body><h1>" + Utils::toString(code) + " " + msg + "</h1></body></html>";
@@ -77,6 +78,22 @@ HandlerResult ResponseBuilder::buildResponse( ) {
 		uri = uri.substr(loc.path.length());
 	}
 
+	//* Prevención Path Traversal (normalizeUri - el que verifica)
+	std::string cleanUri = req.getUri();
+
+	cleanUri = Utils::urlDecode(cleanUri);
+	//std::cout << "Decoded: " << cleanUri << std::endl;
+	cleanUri = normalizeUri(cleanUri);
+	//std::cout << "Normalized: " << cleanUri << std::endl;
+
+	//* Si normalizeUri devuelve "" pero la uri original no lo era, es un intento de escape (malicoso)
+	if (cleanUri.empty() && !uri.empty()) {
+		result.staticResponse = handleError(403);
+		return (result);
+	}
+	uri = cleanUri;
+	//* hasta aquí
+
 	if (!uri.empty() && uri[0] != '/')
 		path += "/";
 
@@ -104,7 +121,6 @@ bool ResponseBuilder::isCgiRequest() {
 
 	std::string ext = path.substr(dotPos);
 
-	// 2. Cambiar cgiExtensions por cgiExtension (el nombre real en tu struct)
 	for (size_t i = 0; i < loc.cgiExtension.size(); ++i) {
 		if (loc.cgiExtension[i] == ext) {
 			return true;
@@ -135,4 +151,35 @@ std::string ResponseBuilder::getCgiBinary() {
 	}
 
 	return ("");
+}
+
+//* Limpia los ./ y resuelve los ../
+std::string ResponseBuilder::normalizeUri(const std::string& uri) {
+    std::vector<std::string> parts;
+    size_t start = 0;
+
+    while (start < uri.length()) {
+        size_t end = uri.find('/', start);
+        std::string part = (end == std::string::npos) ? uri.substr(start) : uri.substr(start, end - start);
+
+        if (part == "..") {
+            if (!parts.empty()) {
+                parts.pop_back(); // Elimina la carpeta anterior válida
+            } else {
+                return ""; // Intento de Path Traversal bloqueado
+            }
+        } else if (!part.empty() && part != ".") {
+            parts.push_back(part); // Guarda el directorio válido
+        }
+
+        if (end == std::string::npos) break;
+        start = end + 1;
+    }
+
+    std::string normalized = "";
+    for (size_t i = 0; i < parts.size(); ++i) {
+        normalized += "/" + parts[i];
+    }
+    
+    return normalized.empty() ? "/" : normalized;
 }

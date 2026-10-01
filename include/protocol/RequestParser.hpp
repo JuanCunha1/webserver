@@ -69,4 +69,6 @@ class RequestParser {
 		void process();
 		Request &getRequest();
 		State getState() const;
+
+		void reset();
 };

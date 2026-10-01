@@ -11,9 +11,11 @@
 #include <poll.h>
 #include "protocol/Request.hpp"
 #include "protocol/RequestParser.hpp"
+#include "protocol/HttpException.hpp"
 #include "config/ConfigParser.hpp"
 #include "protocol/ResponseBuilder.hpp"
 #include "protocol/Response.hpp"
+#include "../../include/config/UrlMatcher.hpp"
 
 class Client;
 class Socket;
@@ -41,6 +43,10 @@ class Server
 		void	handleClientRead(size_t index);
 		void	handleClientWrite(size_t index);
         void    handleServerError(size_t index);
+
+		bool	isCgiFd(int fd) const;
+		Client*	getClientByCgiFd(int fd);
+		void	handleCgiEvent(size_t index);
     
 		void	addListeningSocket(Socket *socket);
         bool    isListeningSocket(int fd) const;

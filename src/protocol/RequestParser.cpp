@@ -468,3 +468,8 @@ RequestParser::State RequestParser::getState() const {
 Request &RequestParser::getRequest() {
 	return req;
 }
+
+void RequestParser::reset() {
+    _state = REQUEST_LINE;
+    req = Request(); // Reinicia el objeto de la petición (limpia headers, body, uri, etc.)
+}

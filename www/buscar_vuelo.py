@@ -32,7 +32,7 @@ print("<head><title>Buscador de Vuelos CGI</title></head>")
 print("<body style='font-family: sans-serif; margin: 40px;'>")
 
 print("<h2>Buscador de Vuelos</h2>")
-print("<form method='GET' action='/buscar.py'>")
+print("<form method='GET' action='/buscar_vuelo.py'>")
 print("  Origen: <input type='text' name='origen' placeholder='Ej. BCN' value='" + html.escape(origen) + "'>")
 print("  Destino: <input type='text' name='destino' placeholder='Ej. TIA' value='" + html.escape(destino) + "'>")
 print("  Fecha: <input type='date' name='fecha' value='" + html.escape(fecha) + "'>")

@@ -78,7 +78,14 @@ HandlerResult ResponseBuilder::handleGet() {
 
     if (S_ISREG(statbuf.st_mode)) {
         std::string cgiBinary = getCgiBinary();
-
+		/*
+		// --- INICIO DEBUG ---
+        std::cout << "\n[DEBUG CGI] ------------------------" << std::endl;
+        std::cout << "[DEBUG CGI] Archivo solicitado: " << path << std::endl;
+        std::cout << "[DEBUG CGI] Binario CGI detectado: '" << cgiBinary << "'" << std::endl;
+        std::cout << "[DEBUG CGI] ------------------------\n" << std::endl;
+        // --- FIN DEBUG ---
+		*/
         if (!cgiBinary.empty()) {
             if (access(path.c_str(), R_OK) == -1 || access(cgiBinary.c_str(), X_OK) == -1) {
                 result.staticResponse = buildErrorResponse(403, "Forbidden");

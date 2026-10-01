@@ -92,10 +92,8 @@ bool CgiHandler::createPipes(int pIn[2], int pOut[2]) {
         return (false);
     }
 
-	fcntl(pIn[0], F_SETFL, O_NONBLOCK);
     fcntl(pIn[1], F_SETFL, O_NONBLOCK);
     fcntl(pOut[0], F_SETFL, O_NONBLOCK);
-    fcntl(pOut[1], F_SETFL, O_NONBLOCK);
 
     return (true);
 }
@@ -163,7 +161,11 @@ bool CgiHandler::initCgi(const Request &req, const std::string &scriptPath, cons
     } else {
         setupParent(pIn, pOut, req);
     }
-
+	/*
+	std::cout << "[DEBUG] CGI Forked -> PID: " << _pid 
+          << " | PipeIn (Escribir): " << _pipeIn 
+          << " | PipeOut (Leer): " << _pipeOut << std::endl;
+	*/
     return (true);
 }
 
@@ -207,6 +209,12 @@ void CgiHandler::readFromCgi() {
         close(_pipeOut);
         _pipeOut = -1;
         _isReadDone = true;
+
+		//* recogemos hijo para evitar zombis
+		if (_pid > 0) {
+            waitpid(_pid, NULL, WNOHANG); // WNOHANG no bloquea el event loop
+            _pid = -1;
+        }
     } else {
 		// Si no hay datos aún, salimos sin marcar error
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
@@ -300,6 +308,7 @@ Response CgiHandler::buildCgiResponse() {
     res.setBody(bodyPart);
     res.setHeader("Content-Length", Utils::toString(bodyPart.size()));
 
+	//std::cout << "[HTTP CGI] Respuesta generada con " << bodyPart.size() << " bytes de body." << std::endl;
     return (res);
 }
 
