@@ -45,11 +45,12 @@ HandlerResult ResponseBuilder::handleGet() {
     struct stat statbuf;
     if (stat(path.c_str(), &statbuf) == -1) {
         if (errno == ENOENT) {
-            result.staticResponse = buildErrorResponse(404, "Not Found");
+            result.staticResponse = handleError(404);
+			//std::cout << "AQUI" << std::endl;
         } else if (errno == EACCES) {
-            result.staticResponse = buildErrorResponse(403, "Forbidden");
+            result.staticResponse = handleError(403);
         } else {
-            result.staticResponse = buildErrorResponse(500, "Internal Server Error");
+            result.staticResponse = handleError(500);
         }
         return (result);
     }
@@ -72,7 +73,7 @@ HandlerResult ResponseBuilder::handleGet() {
             // return (result);
         }
         
-        result.staticResponse = buildErrorResponse(403, "Forbidden");
+        result.staticResponse = handleError(403);
         return (result);
     }
 
@@ -88,7 +89,7 @@ HandlerResult ResponseBuilder::handleGet() {
 		*/
         if (!cgiBinary.empty()) {
             if (access(path.c_str(), R_OK) == -1 || access(cgiBinary.c_str(), X_OK) == -1) {
-                result.staticResponse = buildErrorResponse(403, "Forbidden");
+                result.staticResponse = handleError(403);
                 return (result);
             }
             
@@ -98,13 +99,13 @@ HandlerResult ResponseBuilder::handleGet() {
             if (!result.cgiHandler->initCgi(req, path, cgiBinary)) {
                 delete result.cgiHandler;
                 result.isCgi = false;
-                result.staticResponse = buildErrorResponse(500, "Internal Server Error");
+                result.staticResponse = handleError(500);
             }
             return (result); // Retorno asíncrono, sin while[cite: 2]
         }
 
         if (access(path.c_str(), R_OK) == -1) {
-            result.staticResponse = buildErrorResponse(403, "Forbidden");
+            result.staticResponse = handleError(403);
             return (result);
         }
         
@@ -112,7 +113,7 @@ HandlerResult ResponseBuilder::handleGet() {
         return (result);
     }
 
-    result.staticResponse = buildErrorResponse(403, "Forbidden");
+    result.staticResponse = handleError(403);
     return (result);
 }
 

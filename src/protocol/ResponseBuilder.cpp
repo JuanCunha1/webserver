@@ -8,27 +8,14 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-ResponseBuilder::ResponseBuilder(const Request &request, const ConfigLocation &location)
+ResponseBuilder::ResponseBuilder(const Request &request, const ConfigLocation &location, const ConfigServer &server)
 	: req(request)
 	, loc(location)
+	, server(server)
 	, path("") {
 }
 
 ResponseBuilder::~ResponseBuilder() {
-}
-
-Response ResponseBuilder::buildErrorResponse(int code, const std::string &msg) {
-	Response res;
-	std::string defaultBody = "<html><body><h1>" + Utils::toString(code) + " " + msg + "</h1></body></html>";
-
-	res.setStatusCode(code);
-	res.setStatusMessage(msg);
-	res.setHeader("Content-Type", "text/html");
-	res.setHeader("Content-Length", Utils::toString(defaultBody.size()));
-	res.setHeader("Connection", "close");
-	res.setBody(defaultBody);
-
-	return (res);
 }
 
 bool ResponseBuilder::shouldCloseConnection(int statusCode) {
@@ -47,6 +34,30 @@ bool ResponseBuilder::shouldCloseConnection(int statusCode) {
 
 HandlerResult ResponseBuilder::buildResponse( ) {
 	HandlerResult result;
+
+	//* Gestión redirecciones
+	if (!loc.returnRedirections.empty()) {
+		Response res;
+		int redirectCode = loc.returnRedirections[0].returnCode;
+				
+		// Si en el conf pusieron "return /nueva-ruta;" sin código, por defecto es 302
+		if (redirectCode == 0) {
+			redirectCode = 302;
+		}
+
+		res.setStatusCode(redirectCode);
+		// Asumiendo que has movido getDefaultStatusMessage para que sea accesible
+		res.setStatusMessage(getDefaultStatusMessage(redirectCode)); 
+		
+		// El header clave para que el navegador sepa a dónde ir
+		res.setHeader("Location", loc.returnRedirections[0].returnUrl);
+		res.setHeader("Content-Length", "0"); 
+		res.setHeader("Connection", "keep-alive");
+
+		result.staticResponse = res;
+		return (result);
+	}
+
 	const std::string& method = req.getMethod();
 
 	bool methodAllowed = false;

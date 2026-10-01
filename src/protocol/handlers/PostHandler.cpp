@@ -253,14 +253,14 @@ Response ResponseBuilder::handlePostDirect() {
 	bool fileExisted = (stat(path.c_str(), &statbuf) == 0);
 
 	if (fileExisted && S_ISDIR(statbuf.st_mode)) {
-		return (buildErrorResponse(403, "Forbidden"));
+		return (handleError(403));
 	}
 	if (fileExisted && access(path.c_str(), W_OK) == -1) {
-		return (buildErrorResponse(403, "Forbidden"));
+		return (handleError(403));
 	}
 	std::ofstream outFile(path.c_str(), std::ios::out | std::ios::binary | std::ios::trunc);
 	if (!outFile.is_open()) {
-		return (buildErrorResponse(500, "Internal Server Error"));
+		return (handleError(500));
 	}
 	const std::string &body = req.getBody();
 	if (!body.empty()) {
@@ -308,7 +308,7 @@ HandlerResult ResponseBuilder::handlePost() {
         std::string cgiBinary = getCgiBinary();
         if (!cgiBinary.empty()) {
             if (access(path.c_str(), R_OK) == -1 || access(cgiBinary.c_str(), X_OK) == -1) {
-                result.staticResponse = buildErrorResponse(403, "Forbidden");
+                result.staticResponse = handleError(403);
                 return (result);
             }
             
@@ -318,7 +318,7 @@ HandlerResult ResponseBuilder::handlePost() {
             if (!result.cgiHandler->initCgi(req, path, cgiBinary)) {
                 delete result.cgiHandler;
                 result.isCgi = false;
-                result.staticResponse = buildErrorResponse(500, "Internal Server Error");
+                result.staticResponse = handleError(500);
             }
             return (result); // Retorno asíncrono, sin while[cite: 1]
         }
@@ -331,7 +331,7 @@ HandlerResult ResponseBuilder::handlePost() {
         std::map<std::string, std::string> formFields;
 
         if (!parseAndSaveMultipart(req.getBody(), boundary, path, savedFilenames, formFields)) {
-            result.staticResponse = buildErrorResponse(400, "Bad Request");
+            result.staticResponse = handleError(400);
             return (result);
         }
 
