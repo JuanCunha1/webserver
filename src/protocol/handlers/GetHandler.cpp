@@ -8,6 +8,7 @@
 #include <string>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <dirent.h>
 
 std::string readFile(const std::string &path) {
 	std::ifstream file(path.c_str(), std::ios::in | std::ios::binary);
@@ -40,6 +41,51 @@ Response ResponseBuilder::serveStaticFile(const std::string &filePath) {
 	return (res);
 }
 
+std::string generateAutoindex(const std::string& directoryPath, const std::string& requestUri) {
+    DIR *dir;
+    struct dirent *ent;
+    std::ostringstream html;
+
+    dir = opendir(directoryPath.c_str());
+    if (dir == NULL) {
+        return "";
+    }
+
+    html << "<html>\r\n<head><title>Index of " << requestUri << "</title></head>\r\n"
+         << "<body style=\"font-family: monospace;\">\r\n"
+         << "<h1>Index of " << requestUri << "</h1>\r\n<hr>\r\n<pre>\r\n";
+
+    //* Iteramos sobre todos los elementos de la carpeta
+    while ((ent = readdir(dir)) != NULL) {
+        std::string filename = ent->d_name;
+
+        // Omitir el directorio actual "." para que quede más limpio, 
+        if (filename == ".") {
+            continue;
+        }
+
+        // Asegurar que la URI base termina en '/' para concatenar bien el link
+        std::string href = requestUri;
+        if (!href.empty() && href[href.length() - 1] != '/') {
+            href += "/";
+        }
+        href += filename;
+
+        // Añadir un '/' visual si el elemento es un directorio
+        std::string displayName = filename;
+        if (ent->d_type == DT_DIR) {
+            displayName += "/";
+        }
+
+        html << "<a href=\"" << href << "\">" << displayName << "</a>\n";
+    }
+
+    closedir(dir);
+    html << "</pre>\r\n<hr>\r\n</body>\r\n</html>\r\n";
+
+    return html.str();
+}
+
 HandlerResult ResponseBuilder::handleGet() {
     HandlerResult result;
     struct stat statbuf;
@@ -69,10 +115,27 @@ HandlerResult ResponseBuilder::handleGet() {
         }
 		//! Mirar que es esto
         if (loc.autoindex) {
-            // result.staticResponse = generateAutoindex(req, path);
-            // return (result);
-        }
+            std::string autoindexHtml = generateAutoindex(path, req.getUri());
         
+            if (!autoindexHtml.empty()) {
+                Response res;
+                res.setStatusCode(200);
+                res.setStatusMessage("OK");
+                res.setHeader("Content-Type", "text/html");
+                res.setHeader("Content-Length", Utils::toString(autoindexHtml.size()));
+                res.setBody(autoindexHtml);
+                
+                HandlerResult result;
+                result.staticResponse = res;
+                return result;
+            } else {
+                result.staticResponse = handleError(403);
+                return (result); 
+            }
+        } else {
+            result.staticResponse = handleError(403);
+            return (result);
+        }
         result.staticResponse = handleError(403);
         return (result);
     }
