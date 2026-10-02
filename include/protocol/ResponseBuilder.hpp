@@ -30,7 +30,7 @@ class ResponseBuilder {
 		Response handlePostDirect();
 
 		bool	isCgiRequest();
-		std::string getCgiBinary();
+		bool	isCgiExtension(const std::string& ext, std::string& outCgiBinary);
 		
 		std::string normalizeUri(const std::string& uri);
 

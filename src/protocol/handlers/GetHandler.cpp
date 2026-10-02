@@ -9,6 +9,8 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <dirent.h>
+#include <cerrno>
+#include <cstring> // Para strerror
 
 std::string readFile(const std::string &path) {
 	std::ifstream file(path.c_str(), std::ios::in | std::ios::binary);
@@ -141,21 +143,56 @@ HandlerResult ResponseBuilder::handleGet() {
     }
 
     if (S_ISREG(statbuf.st_mode)) {
-        std::string cgiBinary = getCgiBinary();
-		/*
-		// --- INICIO DEBUG ---
-        std::cout << "\n[DEBUG CGI] ------------------------" << std::endl;
-        std::cout << "[DEBUG CGI] Archivo solicitado: " << path << std::endl;
-        std::cout << "[DEBUG CGI] Binario CGI detectado: '" << cgiBinary << "'" << std::endl;
-        std::cout << "[DEBUG CGI] ------------------------\n" << std::endl;
-        // --- FIN DEBUG ---
-		*/
-        if (!cgiBinary.empty()) {
-            if (access(path.c_str(), R_OK) == -1 || access(cgiBinary.c_str(), X_OK) == -1) {
-                result.staticResponse = handleError(403);
+        // Extraer la extensión del archivo
+        std::string ext = "";
+        std::string::size_type dotPos = path.rfind('.');
+        if (dotPos != std::string::npos) {
+            ext = path.substr(dotPos);
+        }
+
+        std::string cgiBinary;
+        
+        // Verificamos si la extensión pertenece a un CGI según el .conf
+        if (isCgiExtension(ext, cgiBinary)) {
+            std::cout << "DEBUG CGI - Intentando ejecutar: [" << path << "]" << std::endl;
+            if (access(path.c_str(), F_OK) == -1) {
+                result.staticResponse = handleError(404);
                 return (result);
             }
-            
+
+            //!DEBUGING
+            std::cout << "\n--- DEBUG CGI ---" << std::endl;
+            std::cout << "Path del archivo: [" << path << "]" << std::endl;
+            std::cout << "cgiBinary: [" << cgiBinary << "] (Length: " << cgiBinary.length() << ")" << std::endl;
+            if (cgiBinary.empty() || cgiBinary == "\"\"" || cgiBinary == "''") {
+                // Es un CGI COMPILADO (ej: ubuntu_cgi_tester)
+                // Para ejecutarlo directamente, NECESITA permisos de ejecución (X_OK)
+                std::cout << "-> Evaluando como CGI COMPILADO (sin interprete)" << std::endl;
+                if (access(path.c_str(), X_OK) == -1) {
+                    std::cerr << "Fallo access(X_OK) compilado. Error: " << strerror(errno) << std::endl;
+                    result.staticResponse = handleError(403);
+                    return (result);
+                }
+                std::cout << "-> Permisos X_OK correctos para el binario." << std::endl;
+            } else {
+                std::cout << "-> Evaluando como SCRIPT INTERPRETADO (Python/PHP)" << std::endl;
+                // Es un SCRIPT INTERPRETADO (ej: Python)
+                // El script necesita permiso de lectura (R_OK) para que el intérprete lo lea
+                if (access(path.c_str(), R_OK) == -1) {
+                    std::cerr << "Fallo access(R_OK) al script. Error: " << strerror(errno) << std::endl;
+                    result.staticResponse = handleError(403);
+                    return (result);
+                }
+                // Y el intérprete (Python) necesita permiso de ejecución (X_OK)
+                if (access(cgiBinary.c_str(), X_OK) == -1) {
+                    std::cerr << "Fallo access(X_OK) al interprete [" << cgiBinary << "]. Error: " << strerror(errno) << std::endl;
+                    result.staticResponse = handleError(403);
+                    return (result);
+                }
+            }
+            std::cout << "--- FIN DEBUG CGI (Todo OK, pasando a executeChild) ---\n" << std::endl;
+
+            // --- EJECUCIÓN DEL CGI ---
             result.isCgi = true;
             result.cgiHandler = new CgiHandler();
             
@@ -164,9 +201,10 @@ HandlerResult ResponseBuilder::handleGet() {
                 result.isCgi = false;
                 result.staticResponse = handleError(500);
             }
-            return (result); // Retorno asíncrono, sin while[cite: 2]
+            return (result); 
         }
 
+        // --- MANEJO DE ARCHIVOS ESTÁTICOS ---
         if (access(path.c_str(), R_OK) == -1) {
             result.staticResponse = handleError(403);
             return (result);

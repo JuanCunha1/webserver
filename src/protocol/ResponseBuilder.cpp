@@ -141,27 +141,20 @@ bool ResponseBuilder::isCgiRequest() {
 	return (false);
 }
 
-std::string ResponseBuilder::getCgiBinary() {
-	std::string::size_type dotPos = path.rfind('.');
-	if (dotPos == std::string::npos) {
-		return ("");
-	}
+bool ResponseBuilder::isCgiExtension(const std::string& ext, std::string& outCgiBinary) {
+    size_t total = loc.cgiExtension.size();
+    if (loc.cgiPath.size() < total) {
+        total = loc.cgiPath.size();
+    }
 
-	std::string ext = path.substr(dotPos);
+    for (size_t i = 0; i < total; ++i) {
+        if (loc.cgiExtension[i] == ext) {
+            outCgiBinary = loc.cgiPath[i];
+            return true;
+        }
+    }
 
-	// Los dos vectores deben tener el mismo tamaño
-	size_t total = loc.cgiExtension.size();
-	if (loc.cgiPath.size() < total) {
-		total = loc.cgiPath.size();
-	}
-
-	for (size_t i = 0; i < total; ++i) {
-		if (loc.cgiExtension[i] == ext) {
-			return loc.cgiPath[i]; // Devuelve el binario configurado (ej: "/usr/bin/python3")
-		}
-	}
-
-	return ("");
+    return false;
 }
 
 //* Limpia los ./ y resuelve los ../

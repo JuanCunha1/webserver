@@ -304,24 +304,48 @@ Response ResponseBuilder::handlePostDirect() {
 HandlerResult ResponseBuilder::handlePost() {
     HandlerResult result;
 
-    if (isCgiRequest()) {
-        std::string cgiBinary = getCgiBinary();
-        if (!cgiBinary.empty()) {
+    std::string ext = "";
+    std::string::size_type dotPos = path.rfind('.');
+    if (dotPos != std::string::npos) {
+        ext = path.substr(dotPos);
+    }
+
+    std::string cgiBinary;
+
+    // 1. Verificamos si es una extensión CGI (como .bla, .py, .php)
+    if (isCgiExtension(ext, cgiBinary)) {
+        
+        // 2. Verificamos que el archivo script/binario exista
+        if (access(path.c_str(), F_OK) == -1) {
+            result.staticResponse = handleError(404);
+            return (result);
+        }
+
+        // 3. Verificamos permisos según si es compilado o interpretado
+        if (cgiBinary.empty()) {
+            // Es un CGI COMPILADO (ej. ubuntu_cgi_tester con POST /youpi.bla)
+            if (access(path.c_str(), X_OK) == -1) {
+                result.staticResponse = handleError(403);
+                return (result);
+            }
+        } else {
+            // Es un SCRIPT INTERPRETADO (ej. script.py con POST /script.py)
             if (access(path.c_str(), R_OK) == -1 || access(cgiBinary.c_str(), X_OK) == -1) {
                 result.staticResponse = handleError(403);
                 return (result);
             }
-            
-            result.isCgi = true;
-            result.cgiHandler = new CgiHandler();
-            
-            if (!result.cgiHandler->initCgi(req, path, cgiBinary)) {
-                delete result.cgiHandler;
-                result.isCgi = false;
-                result.staticResponse = handleError(500);
-            }
-            return (result); // Retorno asíncrono, sin while[cite: 1]
         }
+
+        // 4. Lanzamos el CGI
+        result.isCgi = true;
+        result.cgiHandler = new CgiHandler();
+        
+        if (!result.cgiHandler->initCgi(req, path, cgiBinary)) {
+            delete result.cgiHandler;
+            result.isCgi = false;
+            result.staticResponse = handleError(500);
+        }
+        return (result); 
     }
 
     const std::string *contentType = req.getHeader("content-type");

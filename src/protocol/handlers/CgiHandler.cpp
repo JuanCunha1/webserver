@@ -9,6 +9,8 @@
 #include <sstream>
 #include <fcntl.h>
 #include <cerrno>
+#include <stdlib.h>
+#include <limits.h>
 
 CgiHandler::CgiHandler() 
     : _pid(-1), _pipeIn(-1), _pipeOut(-1), 
@@ -109,11 +111,45 @@ void CgiHandler::executeChild(int pIn[2], int pOut[2], const Request &req,
     close(pOut[0]);
     close(pOut[1]);
 
-    char **argv = buildArgv(scriptPath, cgiBinary);
-    char **envp = buildEnv(req, scriptPath);
+    //* Go to CWD
+    // 1. Separar ruta y nombre del archivo
+    std::string scriptDir = "."; 
+    std::string scriptName = scriptPath;
+    size_t lastSlash = scriptPath.find_last_of('/');
+    
+    if (lastSlash != std::string::npos) {
+        scriptDir = scriptPath.substr(0, lastSlash);
+        scriptName = scriptPath.substr(lastSlash + 1); // Ej: "reldata.py"
+    }
 
+    // 2. Movernos al directorio del CGI
+    if (chdir(scriptDir.c_str()) == -1) {
+        _exit(EXIT_FAILURE);
+    }
+
+    char **argv = buildArgv(scriptName, cgiBinary);
+    char **envp = buildEnv(req, scriptName); // SCRIPT_FILENAME="reldata.py"
+
+    /*
+    size_t lastSlash = scriptPath.find_last_of('/');
+    std::string scriptDir = ".";
+    std::string scriptName = scriptPath;
+    if (lastSlash != std::string::npos) {
+        scriptDir = scriptPath.substr(0, lastSlash);
+        scriptName = scriptPath.substr(lastSlash + 1);
+    }
+    if (chdir(scriptDir.c_str()) == -1) {
+        _exit(EXIT_FAILURE); 
+    }
+    */
+
+    //char **argv = buildArgv(scriptPath, cgiBinary);
+    //char **envp = buildEnv(req, scriptPath);
+
+    std::cout << "[HIJO] Intentando execve con: " << argv[0] << std::endl;
     execve(argv[0], argv, envp);
-
+    std::cerr << "[HIJO] ¡Fallo critico en execve! Error: " << strerror(errno) << std::endl;
+    
     freeCharArray(argv);
     freeCharArray(envp);
     _exit(127); // Es preferible _exit() dentro de un fork() que std::exit()
@@ -312,7 +348,7 @@ Response CgiHandler::buildCgiResponse() {
     return (res);
 }
 
-//* Utilidades de Argumentos y Variables de Entorno (C++98 Puro)
+/*
 char** CgiHandler::buildArgv(const std::string &scriptPath, const std::string &cgiBinary) {
     char **argv = new char*[3];
 
@@ -321,6 +357,33 @@ char** CgiHandler::buildArgv(const std::string &scriptPath, const std::string &c
 
     argv[1] = new char[scriptPath.size() + 1];
     std::strcpy(argv[1], scriptPath.c_str());
+
+    argv[2] = NULL;
+    return (argv);
+}
+*/
+
+//* Utilidades de Argumentos y Variables de Entorno (C++98 Puro)
+char** CgiHandler::buildArgv(const std::string &scriptName, const std::string &cgiBinary) {
+    char **argv = new char*[3];
+
+    if (cgiBinary.empty() || cgiBinary == "\"\"" || cgiBinary == "''") {
+        // Para CGIs compilados (ej: ubuntu_cgi_tester)
+        std::string execPath = "./" + scriptName; // Construye "./ubuntu_cgi_tester"
+        
+        argv[0] = new char[execPath.size() + 1];
+        std::strcpy(argv[0], execPath.c_str());
+
+        argv[1] = new char[scriptName.size() + 1];
+        std::strcpy(argv[1], scriptName.c_str());
+    } else {
+        // Para scripts interpretados (Python/PHP)
+        argv[0] = new char[cgiBinary.size() + 1];
+        std::strcpy(argv[0], cgiBinary.c_str());
+
+        argv[1] = new char[scriptName.size() + 1];
+        std::strcpy(argv[1], scriptName.c_str());
+    }
 
     argv[2] = NULL;
     return (argv);
