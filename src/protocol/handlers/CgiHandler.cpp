@@ -403,7 +403,7 @@ char** CgiHandler::buildEnv(const Request &req, const std::string &scriptPath) {
         envVector.push_back("QUERY_STRING=" + req.getQuery());
     } else if (req.getMethod() == "POST") {
 		envVector.push_back("QUERY_STRING=" + req.getQuery());
-        const std::string *cType = req.getHeader("Content-Type");
+        const std::string *cType = req.getHeader("content-type");
         if (cType) {
             envVector.push_back("CONTENT_TYPE=" + *cType);
         }
