@@ -1,0 +1,267 @@
+[33mcommit db0cee2aef356f5f8126399a08137a8483aca48e[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mcgiIntegration[m[33m, [m[1;31morigin/cgiIntegration[m[33m)[m
+Author: Guillem Fuster <guillemfuster95@gmail.com>
+Date:   Wed Sep 30 21:06:42 2026 +0200
+
+    Solucionado error 5
+
+[33mcommit 18314aa0f0afbddacf9ee78ef76ebbbdc376a49f[m
+Author: Guillem Fuster <guillemfuster95@gmail.com>
+Date:   Wed Sep 30 11:23:24 2026 +0200
+
+    Error 03 solucionado
+
+[33mcommit c774ce1c895fcbb301d309ae62eeb0db138905c4[m
+Author: Guillem Fuster <gfuster@cbr5s4.42barcelona.com>
+Date:   Tue Sep 29 20:10:46 2026 +0200
+
+    Solucionado error 2
+
+[33mcommit c6ba598a0890dccf6f4efca84248eb64a4be9ff6[m
+Author: Guillem Fuster <guillemfuster95@gmail.com>
+Date:   Tue Sep 29 12:13:52 2026 +0200
+
+    Tester añadido
+
+[33mcommit 77d5e3c7bc80918568fda24d3e3355c2603c5bdc[m
+Author: Guillem Fuster <guillemfuster95@gmail.com>
+Date:   Mon Sep 28 19:55:28 2026 +0200
+
+    cgi working...
+
+[33mcommit 1aee69267a38bc1be0e8dc1f941f7893a9797a29[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m
+Merge: d91b1ec 91a7065
+Author: JuanCunha1 <juan.gucunha@gmail.com>
+Date:   Thu Sep 24 16:07:36 2026 +0200
+
+    Merge pull request #11 from JuanCunha1/netbuild
+    
+    server-handlers
+
+[33mcommit 91a7065085004e1f7c93bdf69871ae97d0eeeeb9[m[33m ([m[1;31morigin/netbuild[m[33m)[m
+Author: JuanCunha1 <juan.gucunha@gmail.com>
+Date:   Thu Sep 24 16:05:35 2026 +0200
+
+    server-handlers
+
+[33mcommit d91b1ec7b7ae82e5a029f88a71ea5672ed7bc500[m
+Merge: 194ffd8 9f92cf4
+Author: JuanCunha1 <juan.gucunha@gmail.com>
+Date:   Thu Sep 24 13:49:58 2026 +0200
+
+    Merge pull request #8 from JuanCunha1/feature/config-parser
+    
+    Manage multiple ports done
+
+[33mcommit 194ffd86c88bfb7451c19d3fabfebec6ce27b950[m
+Merge: d07b255 44f2ab1
+Author: JuanCunha1 <juan.gucunha@gmail.com>
+Date:   Thu Sep 24 13:48:50 2026 +0200
+
+    Merge pull request #7 from JuanCunha1/feature/url-matcher
+    
+    routing algorithm done
+
+[33mcommit d07b25549a4af8089a3bd894700e1425a7c20fdd[m
+Merge: 63fb427 990ade5
+Author: JuanCunha1 <juan.gucunha@gmail.com>
+Date:   Thu Sep 24 13:11:27 2026 +0200
+
+    Merge pull request #10 from JuanCunha1/feat/checking-http-protocol
+    
+    Feat/checking http protocol
+
+[33mcommit 990ade5281f34e408cb161bb983fa3704a5a030c[m[33m ([m[1;31morigin/feat/checking-http-protocol[m[33m)[m
+Merge: 9fa13e9 63fb427
+Author: JuanCunha1 <juan.gucunha@gmail.com>
+Date:   Thu Sep 24 13:11:19 2026 +0200
+
+    Merge branch 'main' into feat/checking-http-protocol
+
+[33mcommit 63fb427d04fe13f3eb94de2a72eb3b63b443bde5[m
+Merge: d6b8bd4 597009a
+Author: JuanCunha1 <juan.gucunha@gmail.com>
+Date:   Thu Sep 24 13:09:38 2026 +0200
+
+    Merge pull request #9 from JuanCunha1/config-network
+    
+    Config network
+
+[33mcommit 597009a5dc73e6a31bb1f73580cd81d331fa569e[m[33m ([m[1;31morigin/config-network[m[33m)[m
+Author: JuanCunha1 <juan.gucunha@gmail.com>
+Date:   Thu Sep 24 13:09:03 2026 +0200
+
+    parser
+
+[33mcommit 9fa13e9e05c5509142d12cd140f1959499bf33ee[m
+Author: gfuster <guillemfuster95@gmail.com>
+Date:   Thu Sep 24 12:27:11 2026 +0200
+
+    listo
+
+[33mcommit 8012ca750571d167ecd91169b35f9b6bc8d7ac8b[m
+Author: JuanCunha1 <juan.gucunha@gmail.com>
+Date:   Tue Sep 22 17:37:00 2026 +0200
+
+    obj http
+
+[33mcommit 8ff6b5cf9f8febb1dd291b10456e8d167301088d[m
+Author: juan cunha <juan.gucunha@gmail.com>
+Date:   Tue Sep 22 12:54:06 2026 +0200
+
+    http obj
+
+[33mcommit 9f92cf4f40a820e90a812cfd72f7a99ed96a4ba0[m[33m ([m[1;31morigin/feature/config-parser[m[33m)[m
+Author: AinhoaGuMo <agumo2006@gmail.com>
+Date:   Sun Sep 20 12:19:16 2026 +0200
+
+    Manage multiple ports done
+
+[33mcommit ef5ba821812674147635386b02db88abc567791d[m[33m ([m[1;32mfeat/checking-http-protocol[m[33m)[m
+Author: Guillem Fuster <guillemfuster95@gmail.com>
+Date:   Sun Sep 20 11:32:40 2026 +0200
+
+    Cambios en la parte del CGI
+
+[33mcommit 44f2ab184ab635412fe5e32f6dd25a656bebe013[m[33m ([m[1;31morigin/feature/url-matcher[m[33m)[m
+Author: AinhoaGuMo <agumo2006@gmail.com>
+Date:   Fri Sep 18 21:47:26 2026 +0200
+
+    routing algorithm done
+
+[33mcommit a2c86407a6edd1dbb67a63102362d05f54d425db[m
+Author: JuanCunha1 <juan.gucunha@gmail.com>
+Date:   Fri Sep 18 16:26:43 2026 +0200
+
+    modify network to accept configparse
+
+[33mcommit d6b8bd441f213c2786de3caf95683952071d7a7d[m
+Author: JuanCunha1 <juan.gucunha@gmail.com>
+Date:   Wed Sep 16 16:39:24 2026 +0200
+
+    modify Makefile
+
+[33mcommit dbe009558e739b8263799bcf03bf69f6de4b8e16[m
+Author: JuanCunha1 <juan.gucunha@gmail.com>
+Date:   Wed Sep 16 16:25:28 2026 +0200
+
+    join config and network
+
+[33mcommit 3adb7103364ca6fca39424c03c458914ad8fbde3[m
+Merge: 9782719 2728bc6
+Author: JuanCunha1 <juan.gucunha@gmail.com>
+Date:   Wed Sep 16 14:37:08 2026 +0200
+
+    Merge pull request #6 from JuanCunha1/feature/config-parser
+    
+    Feature/config parser
+
+[33mcommit 9782719f242a5372f2b711524fee270e3cdcebfc[m
+Merge: 2e471b7 5147380
+Author: JuanCunha1 <juan.gucunha@gmail.com>
+Date:   Wed Sep 16 14:30:19 2026 +0200
+
+    Merge pull request #5 from JuanCunha1/feat/http-response
+    
+    Feat/http response
+
+[33mcommit 51473804825d63f2d0f0d4536555a161acc97a1e[m[33m ([m[1;31morigin/feat/http-response[m[33m)[m
+Merge: cb83e40 2e471b7
+Author: JuanCunha1 <juan.gucunha@gmail.com>
+Date:   Wed Sep 16 14:30:08 2026 +0200
+
+    Merge branch 'main' into feat/http-response
+
+[33mcommit cb83e409ffe092cf104593e283c31036fcd584cb[m
+Author: Guillem Fuster <gfuster@cbr10s4.42barcelona.com>
+Date:   Wed Sep 16 13:33:57 2026 +0200
+
+    revision comentrios
+
+[33mcommit 2e471b79a9720c89a060f22e4dc2e82526a19c88[m
+Merge: c729f9d 033bb2f
+Author: JuanCunha1 <juan.gucunha@gmail.com>
+Date:   Wed Sep 16 13:33:35 2026 +0200
+
+    Merge pull request #4 from JuanCunha1/network
+    
+    Network
+
+[33mcommit 033bb2f9d803d409be8da6f271e990b268efca1b[m[33m ([m[1;31morigin/network[m[33m)[m
+Merge: 3e3a7ed c729f9d
+Author: JuanCunha1 <juan.gucunha@gmail.com>
+Date:   Wed Sep 16 13:20:41 2026 +0200
+
+    Merge branch 'main' into network
+
+[33mcommit 3e3a7edd87263e2db852cca6a6ac66df37600900[m
+Author: JuanCunha1 <juan.gucunha@gmail.com>
+Date:   Wed Sep 16 13:16:51 2026 +0200
+
+    change in the response
+
+[33mcommit 8c612d6150b58621e2d8b2e070b693e14f417950[m
+Author: gfuster <guillemfuster95@gmail.com>
+Date:   Tue Sep 15 23:04:24 2026 +0200
+
+    Response and CGI (not finished)
+
+[33mcommit 2b43586f4dd10abfc792efe1d5b3f4518307199d[m
+Author: JuanCunha1 <juan.gucunha@gmail.com>
+Date:   Fri Sep 11 18:15:32 2026 +0200
+
+    socket input change
+
+[33mcommit a3d11b6719a930f7ed5a26b35e41b65281b30e22[m
+Author: juan cunha <juan.gucunha@gmail.com>
+Date:   Fri Sep 11 12:54:30 2026 +0200
+
+    server multi port
+
+[33mcommit 2728bc6135bbea8dba02c64a4adb0f9f96ab900d[m
+Author: AinhoaGuMo <agumo2006@gmail.com>
+Date:   Fri Sep 11 11:14:38 2026 +0200
+
+    Provisional ConfigParser Done
+
+[33mcommit bbdea6dac7d3a479f1bafa8f06a37cc428845b8c[m
+Author: AinhoaGuMo <agumo2006@gmail.com>
+Date:   Fri Sep 4 09:40:17 2026 +0200
+
+    ConfigParser (basic) and var additions in ConfigServer
+
+[33mcommit 84e6a5d7b507b1cfe5030e51ecb8c49259cc31f4[m
+Author: JuanCunha1 <juan.gucunha@gmail.com>
+Date:   Thu Sep 3 16:04:13 2026 +0200
+
+    working multi port
+
+[33mcommit 66e1f0c2f4af0818097d67bf2e93dda0b9d5985c[m
+Author: juan cunha <juan.gucunha@gmail.com>
+Date:   Thu Sep 3 12:17:31 2026 +0200
+
+    multi ports
+
+[33mcommit b8c72b275678695f0220ddd7269c0168676b77c9[m
+Merge: c0851fd c729f9d
+Author: gfuster <guillemfuster95@gmail.com>
+Date:   Mon Aug 31 15:32:06 2026 +0200
+
+    Merge remote-tracking branch 'origin/main' into feat/http-response
+    Merge of request to add to test Response
+
+[33mcommit c0851fd9bbb0af7804dce23fbc78b5326d711547[m
+Author: gfuster <guillemfuster95@gmail.com>
+Date:   Mon Aug 31 15:29:31 2026 +0200
+
+    feat/http-response: Implementing methods
+
+[33mcommit c729f9d98a20788f8e5ce5df866c6a242cda6cf6[m
+Merge: 51256a5 2d44921
+Author: AinhoaGuMo <agumo2006@gmail.com>
+Date:   Fri Aug 28 12:51:27 2026 +0200
+
+    HTTP parser ready
+    
+    Feat/http request parser
+
+[33mcommit 2d449213c992aaf35a75
