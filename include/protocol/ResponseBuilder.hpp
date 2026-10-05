@@ -18,7 +18,6 @@ class ResponseBuilder {
 	private:
 		Request			req;
 		ConfigLocation	loc;
-		ConfigServer	server;
 		std::string		path;
 
 		HandlerResult handleGet();
@@ -30,21 +29,15 @@ class ResponseBuilder {
 		Response handlePostDirect();
 
 		bool	isCgiRequest();
-		bool	isCgiExtension(const std::string& ext, std::string& outCgiBinary);
+		std::string getCgiBinary();
 		
 		std::string normalizeUri(const std::string& uri);
 
-		std::string getCustomErrorPage(int errorCode);
-		static std::string getDefaultErrorPage(int errorCode, const std::string& statusMsg);
-
 	public:
-		ResponseBuilder(const Request &request, const ConfigLocation &location, const ConfigServer &server);
+		ResponseBuilder(const Request &request, const ConfigLocation &location);
 		~ResponseBuilder();
 		//! Para poderlo usar en el main lo pongo en public
 		Response handleError(int errorCode);
-
-		static std::string getDefaultStatusMessage(int statusCode);
-
 		//! Para poder usar en server
 		static Response buildErrorResponse(int code, const std::string &msg);
 		//* Esta función se va a encargar de montar la respuesta
