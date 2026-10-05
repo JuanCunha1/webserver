@@ -27,29 +27,29 @@ class ConfigParser
         std::vector<ConfigServer>   _servers;
 
         // ConfigParserPrevious.cpp
-        bool    _openFile(std::ifstream& file, const std::string& filename);
+        void    _openFile(std::ifstream& file, const std::string& filename);
         void    _readFileAndTokenize(std::ifstream& file);
         void    _notReadingCommentsInConfigFile(std::string& line);
-        bool    _bracesChecker();
+        void    _bracesChecker();
 
         // ConfigParserTokensBlocks.cpp
-        bool    _parseTokens();
-        bool    _parseServerBlock(ConfigServer& server);
-        bool    _parseLocationBlock(ConfigLocation& location);
-        bool    _duplicateErrorMessage(const std::string& directive);
+        void    _parseTokens();
+        void    _parseServerBlock(ConfigServer& server);
+        void    _parseLocationBlock(ConfigLocation& location);
+        void    _duplicateErrorMessage(const std::string& directive);
 
         // ConfigParserTypes.cpp
-        bool    _parseSingleString(std::string& target, const std::string& key);
-        bool    _parseNumber(int& target, const std::string& key);
-        bool    _parseVector(std::vector<std::string>& target, const std::string& key);
-        bool    _parseReturn(std::vector<ConfigRedirections>& target);
-        bool    _parseClientMaxBodySize(unsigned long& target, const std::string& valStr);
+        void    _parseSingleString(std::string& target, const std::string& key);
+        void    _parseNumber(int& target, const std::string& key);
+        void    _parseVector(std::vector<std::string>& target, const std::string& key);
+        void    _parseReturn(std::vector<ConfigRedirections>& target);
+        void    _parseClientMaxBodySize(unsigned long& target, const std::string& valStr);
         
         // ConfigParserValidations.cpp
-        bool    _validateSemantic();
-        bool    _validatePathTraversal();
-        bool    _validateRedirections();
-        bool    _validateDirectoriesExist();
+        void    _validateSemantic();
+        void    _validatePathTraversal();
+        void    _validateRedirections();
+        void    _validateDirectoriesExist();
         void    _warnPrivilegedPorts();
 
 

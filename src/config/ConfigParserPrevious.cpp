@@ -1,11 +1,12 @@
 #include "config/ConfigParser.hpp"
 #include <iostream>    // std::cerr
+#include <stdexcept>
 
-bool ConfigParser::_bracesChecker()
+void ConfigParser::_bracesChecker()
 {
-    int  balanced = 0;
+    int balanced = 0;
 
-    for (size_t i = 0; i < _tokens.size(); ++i) // i < var.size because vector has no NULL terminator 
+    for (size_t i = 0; i < _tokens.size(); ++i)
     {
         if (_tokens[i] == "{")
         {
@@ -15,16 +16,16 @@ bool ConfigParser::_bracesChecker()
         {
             balanced--;
         }
+        
         if (balanced < 0)
         {
-            return (false);
+            throw std::runtime_error("Error: Incorrect braces");
         }
     }
-    if (balanced == 0)
+    if (balanced != 0)
     {
-        return (true);
+        throw std::runtime_error("Error: Incorrect braces");
     }
-    return (false);
 }
 
 void ConfigParser::_notReadingCommentsInConfigFile(std::string& line)
@@ -85,14 +86,12 @@ void ConfigParser::_readFileAndTokenize(std::ifstream& file)
     }
 }
 
-bool ConfigParser::_openFile(std::ifstream& file, const std::string& filename)
+void ConfigParser::_openFile(std::ifstream& file, const std::string& filename)
 {
     file.open(filename.c_str()); // c_str for "translating" to C
     
     if (!file.is_open())
     {
-        std::cerr << "Error: Cannot open file " << filename << std::endl;
-        return false;
+        throw std::runtime_error("Error: Cannot open file " + filename);
     }
-    return true;
 }
