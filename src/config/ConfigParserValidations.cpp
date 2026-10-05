@@ -1,6 +1,7 @@
 #include "config/ConfigParser.hpp"
 #include <iostream>    // std::cerr
 #include <sys/stat.h>  // stat()
+#include <stdexcept>
 
 // NGINX: 1-1023 (priviliged ports)
 void ConfigParser::_warnPrivilegedPorts()
@@ -13,76 +14,70 @@ void ConfigParser::_warnPrivilegedPorts()
         }
     }
 }
-
 // NGINX: validate root /var/www/html existence
-bool ConfigParser::_validateDirectoriesExist()
+void ConfigParser::_validateDirectoriesExist()
 {
     struct stat info;
 
     for (size_t i = 0; i < _servers.size(); ++i)
     {
-        
         if (!_servers[i].root.empty() && stat(_servers[i].root.c_str(), &info) != 0)
         {
-            std::cerr << "Error: Server root directory '" << _servers[i].root << "' does not exist." << std::endl;
-            return (false);
+            throw std::runtime_error("Error: Server root directory '" + _servers[i].root + "' does not exist.");
         }
         
         for (size_t j = 0; j < _servers[i].locations.size(); ++j)
         {
             ConfigLocation& loc = _servers[i].locations[j];
-            
+
             if (!loc.locationRoot.empty() && stat(loc.locationRoot.c_str(), &info) != 0)
             {
-                std::cerr << "Error: Location root '" << loc.locationRoot << "' does not exist." << std::endl;
-                return (false);
+                throw std::runtime_error("Error: Location root '" + loc.locationRoot + "' does not exist.");
             }
+            
             if (!loc.uploadStore.empty() && stat(loc.uploadStore.c_str(), &info) != 0)
             {
-                std::cerr << "Error: Upload store directory '" << loc.uploadStore << "' does not exist." << std::endl;
-                return (false);
+                throw std::runtime_error("Error: Upload store directory '" + loc.uploadStore + "' does not exist.");
             }
         }
     }
-    return (true);
 }
-
 // NGINX: Valid redirections: 301, 302, 303, 307 or 308
-bool ConfigParser::_validateRedirections()
+void ConfigParser::_validateRedirections()
 {
     for (size_t i = 0; i < _servers.size(); ++i)
     {
         for (size_t j = 0; j < _servers[i].locations.size(); ++j)
         {
             ConfigLocation& loc = _servers[i].locations[j];
+
             for (size_t k = 0; k < loc.returnRedirections.size(); ++k)
             {
                 ConfigRedirections& redir = loc.returnRedirections[k];
+
                 if (!redir.returnUrl.empty())
                 {
                     int c = redir.returnCode;
                     if (c != 301 && c != 302 && c != 303 && c != 307 && c != 308)
                     {
-                        std::cerr << "Error: Redirect to URL " << redir.returnUrl << " must use 301, 302, 303, 307 or 308 return code" << std::endl;
-                        return (false);
+                        std::cerr << "Error: Redirect to URL " << redir.returnUrl << " must use 301, 302, 303, 307 or 308" << std::endl;
+                        throw std::runtime_error("Configuration validation failed");
                     }
                 }
             }
         }
     }
-    return (true);
 }
-
 // NGINX: avoid access to other routes not allowed
-bool ConfigParser::_validatePathTraversal()
+void ConfigParser::_validatePathTraversal()
 {
     for (size_t i = 0; i < _servers.size(); ++i)
     {
         if (_servers[i].root.find("../") != std::string::npos)
         {
-            std::cerr << "Error: Path traversal attempt detected in server root." << std::endl;
-            return (false);
+            throw std::runtime_error("Error: Path traversal attempt detected in server root.");
         }
+        
         for (size_t j = 0; j < _servers[i].locations.size(); ++j)
         {
             ConfigLocation& loc = _servers[i].locations[j];
@@ -91,15 +86,13 @@ bool ConfigParser::_validatePathTraversal()
                 loc.locationRoot.find("../") != std::string::npos || 
                 loc.uploadStore.find("../") != std::string::npos)
             {
-                std::cerr << "Error: Path traversal attempt (../) detected in location configuration." << std::endl;
-                return (false);
+                throw std::runtime_error("Error: Path traversal attempt (../) detected in location configuration.");
             }
         }
     }
-    return (true);
 }
 
-bool ConfigParser::_validateSemantic()
+void ConfigParser::_validateSemantic()
 {
     for (size_t i = 0; i < _servers.size(); ++i)
     {
@@ -114,43 +107,46 @@ bool ConfigParser::_validateSemantic()
             _servers[i].root = "www"; // O la carpeta pública que uséis
         if (_servers[i].indexFile == "")
             _servers[i].indexFile = "index.html";
+        
         if (_servers[i].port < 1 || _servers[i].port > 65535)
         {
             std::cerr << "Error: Port " << _servers[i].port << " is out of valid range (1-65535)." << std::endl;
-            return (false);
+            throw std::runtime_error("Configuration validation failed");
         }
+
         for (size_t j = 0; j < _servers[i].errorPages.size(); ++j)
         {
             for (size_t k = 0; k < _servers[i].errorPages[j].errorCodes.size(); ++k)
             {
                 int code = _servers[i].errorPages[j].errorCodes[k];
-                if (code < 400 || code > 599) // 400 - 499 --> Client errors.    500 - 599 --> Server errors
+                if (code < 400 || code > 599)
                 {
-                    std::cerr << "Error: Invalid error page code " << code << " (must be 400-599)." << std::endl;
-                    return (false);
+                    std::cerr << "Error: Invalid error page code " << code << " (must be 400-599)." << std::endl; // cerr and throw because c++98. Issues with int for print!
+                    throw std::runtime_error("Configuration validation failed");
                 }
             }
         }
+
         for (size_t j = 0; j < _servers[i].locations.size(); ++j)
         {
-            ConfigLocation& location = _servers[i].locations[j]; // Use of & for modify vector if empty
+            ConfigLocation& location = _servers[i].locations[j];
 
             if (location.cgiPath.size() != location.cgiExtension.size())
             {
-                std::cerr << "Error: Each cgi extension must have exactly one path" << std::endl;
-                return (false);
+                throw std::runtime_error("Error: Each cgi extension must have exactly one path");
             }
+            
             for (size_t k = j + 1; k < _servers[i].locations.size(); ++k)
             {
                 if (location.path == _servers[i].locations[k].path)
                 {
-                    std::cerr << "Error: Duplicate location path " << location.path << " in the same server" << std::endl;
-                    return (false);
+                    throw std::runtime_error("Error: Duplicate location path " + location.path + " in the same server");
                 }
             }
+
             if (location.allowedMethods.empty())
             {
-                location.allowedMethods.push_back("GET"); // Security measure
+                location.allowedMethods.push_back("GET");
             }
             else
             {
@@ -159,8 +155,7 @@ bool ConfigParser::_validateSemantic()
                     const std::string& method = location.allowedMethods[k];
                     if (method != "GET" && method != "POST" && method != "DELETE")
                     {
-                        std::cerr << "Error: Invalid HTTP method " << method << ". Allowed: GET, POST, DELETE" << std::endl;
-                        return (false);
+                        throw std::runtime_error("Error: Invalid HTTP method " + method + ". Allowed: GET, POST, DELETE");
                     }
                 }
             }
@@ -176,7 +171,7 @@ bool ConfigParser::_validateSemantic()
                 if (_servers[i].serverNames.empty() || _servers[j].serverNames.empty())
                 {
                     std::cerr << "Error: Servers sharing host " << _servers[i].host << " and port " << _servers[i].port << " must have different server_names defined" << std::endl;
-                    return (false);
+                    throw std::runtime_error("Configuration validation failed");
                 }
                 for (size_t n1 = 0; n1 < _servers[i].serverNames.size(); ++n1)
                 {
@@ -184,21 +179,16 @@ bool ConfigParser::_validateSemantic()
                     {
                         if (_servers[i].serverNames[n1] == _servers[j].serverNames[n2])
                         {
-                            std::cerr << "Error: Server name " << _servers[i].serverNames[n1] << " is duplicated on the same host and port." << std::endl;
-                            return (false);
+                            throw std::runtime_error("Error: Server name " + _servers[i].serverNames[n1] + " is duplicated on the same host and port.");
                         }
                     }
                 }
             }
         }
     }
-    if (!_validatePathTraversal())
-        return (false);
-    if (!_validateRedirections())
-        return (false);
-    if (!_validateDirectoriesExist())
-        return (false);
-        
+    
+    _validatePathTraversal();
+    _validateRedirections();
+    _validateDirectoriesExist();
     _warnPrivilegedPorts();
-    return (true);
 }
