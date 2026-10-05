@@ -36,31 +36,29 @@ void ConfigParser::parseFile(const std::string& filename)
 
     if (!_openFile(file, filename))
     {
-        throw std::runtime_error("Error: Cannot open file " + filename);
+        std::cout << "1" << std::endl;
+        return; 
     }
-    
     _readFileAndTokenize(file);
     file.close();
-    
     if (!_bracesChecker())
     {
-        throw std::runtime_error("Error: Incorrect braces in " + filename);
+        std::cerr << "Error: Incorrect braces in " << filename << std::endl;
+        return;
     }
-    
     if (!_parseTokens())
     {
-        throw std::runtime_error("Error: Configuration parser failed");
+        std::cerr << "Error: Configuration parser failed" << std::endl;
+        return;
     }
-    
     if (!_validateSemantic())
     {
-        _servers.clear(); // Limpiamos memoria si es necesario
-        throw std::runtime_error("Error: Semantic validation failed");
+        _servers.clear(); // Clean memory if needed
+        return;
     }
-    
     if (!_postProcessConfiguration())
     {
         _servers.clear();
-        throw std::runtime_error("Error: Post-processing configuration failed");
+        return;
     }
 }

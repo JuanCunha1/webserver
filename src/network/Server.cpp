@@ -387,7 +387,7 @@ void Server::handleClientRead(size_t index)
 	}
 	*/
 
-	ResponseBuilder builder(request, *location, *serverConfig);
+	ResponseBuilder builder(request, *location);
 
 	HandlerResult handlerResult = builder.buildResponse();
 

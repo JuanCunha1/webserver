@@ -253,14 +253,14 @@ Response ResponseBuilder::handlePostDirect() {
 	bool fileExisted = (stat(path.c_str(), &statbuf) == 0);
 
 	if (fileExisted && S_ISDIR(statbuf.st_mode)) {
-		return (handleError(403));
+		return (buildErrorResponse(403, "Forbidden"));
 	}
 	if (fileExisted && access(path.c_str(), W_OK) == -1) {
-		return (handleError(403));
+		return (buildErrorResponse(403, "Forbidden"));
 	}
 	std::ofstream outFile(path.c_str(), std::ios::out | std::ios::binary | std::ios::trunc);
 	if (!outFile.is_open()) {
-		return (handleError(500));
+		return (buildErrorResponse(500, "Internal Server Error"));
 	}
 	const std::string &body = req.getBody();
 	if (!body.empty()) {
@@ -304,48 +304,24 @@ Response ResponseBuilder::handlePostDirect() {
 HandlerResult ResponseBuilder::handlePost() {
     HandlerResult result;
 
-    std::string ext = "";
-    std::string::size_type dotPos = path.rfind('.');
-    if (dotPos != std::string::npos) {
-        ext = path.substr(dotPos);
-    }
-
-    std::string cgiBinary;
-
-    // 1. Verificamos si es una extensión CGI (como .bla, .py, .php)
-    if (isCgiExtension(ext, cgiBinary)) {
-        
-        // 2. Verificamos que el archivo script/binario exista
-        if (access(path.c_str(), F_OK) == -1) {
-            result.staticResponse = handleError(404);
-            return (result);
-        }
-
-        // 3. Verificamos permisos según si es compilado o interpretado
-        if (cgiBinary.empty()) {
-            // Es un CGI COMPILADO (ej. ubuntu_cgi_tester con POST /youpi.bla)
-            if (access(path.c_str(), X_OK) == -1) {
-                result.staticResponse = handleError(403);
-                return (result);
-            }
-        } else {
-            // Es un SCRIPT INTERPRETADO (ej. script.py con POST /script.py)
+    if (isCgiRequest()) {
+        std::string cgiBinary = getCgiBinary();
+        if (!cgiBinary.empty()) {
             if (access(path.c_str(), R_OK) == -1 || access(cgiBinary.c_str(), X_OK) == -1) {
-                result.staticResponse = handleError(403);
+                result.staticResponse = buildErrorResponse(403, "Forbidden");
                 return (result);
             }
+            
+            result.isCgi = true;
+            result.cgiHandler = new CgiHandler();
+            
+            if (!result.cgiHandler->initCgi(req, path, cgiBinary)) {
+                delete result.cgiHandler;
+                result.isCgi = false;
+                result.staticResponse = buildErrorResponse(500, "Internal Server Error");
+            }
+            return (result); // Retorno asíncrono, sin while[cite: 1]
         }
-
-        // 4. Lanzamos el CGI
-        result.isCgi = true;
-        result.cgiHandler = new CgiHandler();
-        
-        if (!result.cgiHandler->initCgi(req, path, cgiBinary)) {
-            delete result.cgiHandler;
-            result.isCgi = false;
-            result.staticResponse = handleError(500);
-        }
-        return (result); 
     }
 
     const std::string *contentType = req.getHeader("content-type");
@@ -355,7 +331,7 @@ HandlerResult ResponseBuilder::handlePost() {
         std::map<std::string, std::string> formFields;
 
         if (!parseAndSaveMultipart(req.getBody(), boundary, path, savedFilenames, formFields)) {
-            result.staticResponse = handleError(400);
+            result.staticResponse = buildErrorResponse(400, "Bad Request");
             return (result);
         }
 
