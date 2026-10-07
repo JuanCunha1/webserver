@@ -320,7 +320,6 @@ void Server::handleClientRead(size_t index)
 	}
 
 	if (client->getParser().getState() != RequestParser::COMPLETE) {
-		std::cout << "AAAAAAAAA" << std::endl;
 		return;
 	}
 
