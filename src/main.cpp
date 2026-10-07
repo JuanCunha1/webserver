@@ -4,6 +4,7 @@
 #include "network/Server.hpp"
 #include <iostream>
 #include <exception>
+#include <signal.h>
 
 int main(int argc, char *argv[])
 {
@@ -15,6 +16,7 @@ int main(int argc, char *argv[])
 
 	try
 	{
+		signal(SIGPIPE, SIG_IGN);
 		ConfigParser parser;
 		parser.parseFile(argv[1]);
 		Server server(parser.getServers());
