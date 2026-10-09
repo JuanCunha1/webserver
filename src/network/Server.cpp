@@ -443,6 +443,16 @@ void Server::handleClientWrite(size_t index)
 	std::cout << "[DEBUG HTTP] Intentando enviar " << client->getResponseBuffer().size() 
           << " bytes al cliente FD " << client->getFd() << std::endl;
 	*/
+	// a: Miramos el búfer ANTES de enviarlo para saber si contiene un error 4xx/5xx
+	// o si el ResponseBuilder de tu compañero ha puesto explícitamente Connection: close
+	bool isErrorOrClose = false;
+	std::string respBuffer = client->getResponseBuffer();
+	if (respBuffer.find("HTTP/1.1 4") == 0 || 
+		respBuffer.find("HTTP/1.1 5") == 0 ||
+		respBuffer.find("Connection: close") != std::string::npos)
+	{
+		isErrorOrClose = true;
+	}
 	int result = client->sendData();
 	if (result < 0)
 	{
@@ -452,6 +462,12 @@ void Server::handleClientWrite(size_t index)
 	// A: Check has no data to send, if so, reset events to POLLIN and reset parser for next request
 	if (!client->hasDataToSend())
 	{
+		// A: Si mandamos un error 400/500 o un close forzado, cortamos la conexión de raíz.
+		if (isErrorOrClose)
+		{
+			removeClient(index);
+			return;
+		}
 		const Request &request = client->getParser().getRequest();
 		const std::string *connHeader = request.getHeader("connection");
 
