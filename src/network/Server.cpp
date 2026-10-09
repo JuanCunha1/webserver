@@ -449,9 +449,25 @@ void Server::handleClientWrite(size_t index)
 		removeClient(index);
 		return;
 	}
-	_pollFds[index].events = POLLIN;
+	// A: Check has no data to send, if so, reset events to POLLIN and reset parser for next request
+	if (!client->hasDataToSend())
+	{
+		const Request &request = client->getParser().getRequest();
+		const std::string *connHeader = request.getHeader("connection");
 
-	client->getParser().reset();
+		if ((connHeader != NULL && *connHeader == "close") || (request.getVersion() == "HTTP/1.0" && (connHeader == NULL || *connHeader != "keep-alive")))
+		{
+			removeClient(index);
+			return;
+		}
+
+		_pollFds[index].events = POLLIN;
+		client->getParser().reset();
+	}
+	else
+	{
+		_pollFds[index].events |= POLLOUT; // A: |= OR for bits
+	}
 	/*
 	// Solo volvemos a escuchar si ya vaciamos todo el buffer de salida
     if (client->hasDataToSend()) {
