@@ -2,13 +2,13 @@
 
 #include <string>
 #include <iostream>
-#include <cstring>
 #include <cerrno>
+#include <cstring>       // A: for std::strerror
+#include <netdb.h> // A: for getadrrinfo
 
 #include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <arpa/inet.h>
 #include <stdexcept>
 #include <fcntl.h>
 #include <cerrno>

@@ -51,6 +51,11 @@ void Server::start()
 {
 	for (size_t i = 0; i < _serverConfigs.size(); ++i)
 	{
+		// A: For avoid to start server with no configuration, which will cause a crash when trying to access _serverConfigs[i]
+		if (_serverConfigs.empty())
+		{
+			throw std::runtime_error("Error: No server configurations loaded. Check your .conf file.");
+		}
 		const ConfigServer &config = _serverConfigs[i];
 		Socket *socket = new Socket(config.port, config.host);
 
@@ -69,6 +74,11 @@ void Server::start()
 			delete socket;
 			throw;
 		}
+	}
+	// A: For avoid to start server with no listening sockets, which will cause a crash when trying to access _sockets[i]
+	if (_sockets.empty())
+	{
+		throw std::runtime_error("Error: Could not bind any listening sockets.");
 	}
 	std::cout << "Server started with "
 			  << _sockets.size()
@@ -283,8 +293,9 @@ void Server::handleClientRead(size_t index)
 		return;
 	}
 
-	if (result == -1)
-		return;
+	// A: COMENTADO PARA PERMITIR PIPELINING (BUG 3)
+	// if (result == -1)
+	// 	return;
 
 	if (result == -2)
 	{
@@ -320,12 +331,12 @@ void Server::handleClientRead(size_t index)
 	}
 
 	if (client->getParser().getState() != RequestParser::COMPLETE) {
-		std::cout << "AAAAAAAAA" << std::endl;
+		// A: Debug message
+		// std::cout << "DEBUG IS NON BLOCKING" << std::endl;
 		return;
 	}
 
 	const Request &request = client->getParser().getRequest();
-	
 	//! Codigo Ainhoa
 	// 1. Obtener el valor de la cabecera "Host" para pasárselo a findBestServer
     // (Ajusta 'getHeader' al nombre del método que uses en tu clase Request)
@@ -462,6 +473,12 @@ void Server::handleClientWrite(size_t index)
 	// A: Check has no data to send, if so, reset events to POLLIN and reset parser for next request
 	if (!client->hasDataToSend())
 	{
+		// A: (pipelining) Si el cliente no tiene más datos para enviar, verificamos si la solicitud fue completa y si no hubo errores. Si todo está bien, reiniciamos el parser para permitir nuevas solicitudes (pipelining).
+		if (client->getParser().getState() != RequestParser::COMPLETE)
+		{
+			removeClient(index);
+			return;
+		}
 		// A: Si mandamos un error 400/500 o un close forzado, cortamos la conexión de raíz.
 		if (isErrorOrClose)
 		{
@@ -479,6 +496,9 @@ void Server::handleClientWrite(size_t index)
 
 		_pollFds[index].events = POLLIN;
 		client->getParser().reset();
+
+		// NUEVO: (pipelining)Forzamos una lectura inmediata para procesar el pipelining
+		handleClientRead(index);
 	}
 	else
 	{
