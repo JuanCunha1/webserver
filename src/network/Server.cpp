@@ -570,6 +570,7 @@ void Server::addClient(size_t socketIndex)
 	_pollFds.push_back(clientPollFd);
 }
 
+/*
 void Server::checkTimeouts()
 {
 	std::time_t now = std::time(NULL);
@@ -598,6 +599,57 @@ void Server::checkTimeouts()
 				break;
 			}
 		}
+	}
+}
+*/
+
+void Server::checkTimeouts()
+{
+	std::time_t now = std::time(NULL);
+	size_t i = 0;
+
+	while (i < _clients.size())
+	{
+		if (!_clients[i]->isTimedOut(now, CLIENT_TIMEOUT))
+		{
+			++i;
+			continue;
+		}
+
+		int fd = _clients[i]->getFd();
+		Client::State state = _clients[i]->getState();
+		
+		// 1. Translate the state for logging
+		std::string stateStr;
+		if (state == Client::READING) stateStr = "WAITING_FOR_REQUEST";
+		else if (state == Client::WAITING_FOR_CGI) stateStr = "WAITING_FOR_CGI";
+		else stateStr = "READY_TO_SEND";
+
+		// 2. Structured and improved log
+		std::cout << "[WARN] Client timeout after " << CLIENT_TIMEOUT 
+				  << "s of inactivity. FD: " << fd 
+				  << ", Server Port: " << _clients[i]->getServerPort()
+				  << ", State: " << stateStr << std::endl;
+
+		// 3. Courtesy response 408 Request Timeout
+		Response errorRes = ResponseBuilder::buildErrorResponse(408, "Request Timeout");
+		std::string responseString = errorRes.getHeadersAsString() + errorRes.getBody();
+		
+		_clients[i]->setResponse(responseString);
+
+		// 4. Change the event to POLLOUT instead of removing the client.
+		// The handleClientWrite loop will send the 408 and close the connection gracefully.
+		for (size_t j = 0; j < _pollFds.size(); ++j)
+		{
+			if (_pollFds[j].fd == fd)
+			{
+				_pollFds[j].events |= POLLOUT;
+				break;
+			}
+		}
+		
+		// Move to the next client (we no longer use removeClient here)
+		++i;
 	}
 }
 
