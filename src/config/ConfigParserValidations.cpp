@@ -92,6 +92,50 @@ void ConfigParser::_validatePathTraversal()
     }
 }
 
+// Función auxiliar estática/privada para verificar si un path apunta a la raíz del sistema
+static bool isSystemRootPath(const std::string& path)
+{
+    if (path.empty())
+        return false;
+
+    // Si solo contiene una o más barras consecutivas ("/", "///", etc.)
+    size_t firstNonSlash = path.find_first_not_of('/');
+    if (firstNonSlash == std::string::npos)
+        return true;
+
+    return false;
+}
+
+void ConfigParser::_validateForbiddenRoots()
+{
+    for (size_t i = 0; i < _servers.size(); ++i)
+    {
+        // 1. Validar el root global del server (si está configurado)
+        if (isSystemRootPath(_servers[i].root))
+        {
+            throw std::runtime_error("Config Error: Server root cannot point to system root ('/')");
+        }
+
+        // 2. Validar cada location
+        for (size_t j = 0; j < _servers[i].locations.size(); ++j)
+        {
+            const ConfigLocation& loc = _servers[i].locations[j];
+
+            // Validar locationRoot
+            if (isSystemRootPath(loc.locationRoot))
+            {
+                throw std::runtime_error("Config Error: locationRoot cannot point to system root ('/') in location '" + loc.path + "'");
+            }
+
+            // Validar uploadStore por si alguien intenta subir archivos directamente a /
+            if (isSystemRootPath(loc.uploadStore))
+            {
+                throw std::runtime_error("Config Error: uploadStore cannot point to system root ('/') in location '" + loc.path + "'");
+            }
+        }
+    }
+}
+
 void ConfigParser::_validateSemantic()
 {
     for (size_t i = 0; i < _servers.size(); ++i)
@@ -188,6 +232,7 @@ void ConfigParser::_validateSemantic()
     }
     
     _validatePathTraversal();
+    _validateForbiddenRoots();
     _validateRedirections();
     _validateDirectoriesExist();
     _warnPrivilegedPorts();

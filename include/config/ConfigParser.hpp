@@ -48,6 +48,7 @@ class ConfigParser
         // ConfigParserValidations.cpp
         void    _validateSemantic();
         void    _validatePathTraversal();
+		void	_validateForbiddenRoots();
         void    _validateRedirections();
         void    _validateDirectoriesExist();
         void    _warnPrivilegedPorts();

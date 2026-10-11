@@ -94,7 +94,6 @@ HandlerResult ResponseBuilder::handleGet() {
     if (stat(path.c_str(), &statbuf) == -1) {
         if (errno == ENOENT) {
             result.staticResponse = handleError(404);
-			//std::cout << "AQUI" << std::endl;
         } else if (errno == EACCES) {
             result.staticResponse = handleError(403);
         } else {
