@@ -51,6 +51,11 @@ void Server::start()
 {
 	for (size_t i = 0; i < _serverConfigs.size(); ++i)
 	{
+		// A: For avoid to start server with no configuration, which will cause a crash when trying to access _serverConfigs[i]
+		if (_serverConfigs.empty())
+		{
+			throw std::runtime_error("Error: No server configurations loaded. Check your .conf file.");
+		}
 		const ConfigServer &config = _serverConfigs[i];
 		Socket *socket = new Socket(config.port, config.host);
 
@@ -69,6 +74,11 @@ void Server::start()
 			delete socket;
 			throw;
 		}
+	}
+	// A: For avoid to start server with no listening sockets, which will cause a crash when trying to access _sockets[i]
+	if (_sockets.empty())
+	{
+		throw std::runtime_error("Error: Could not bind any listening sockets.");
 	}
 	std::cout << "Server started with "
 			  << _sockets.size()
@@ -283,8 +293,9 @@ void Server::handleClientRead(size_t index)
 		return;
 	}
 
-	if (result == -1)
-		return;
+	// A: COMENTADO PARA PERMITIR PIPELINING (BUG 3)
+	// if (result == -1)
+	// 	return;
 
 	if (result == -2)
 	{
@@ -320,12 +331,12 @@ void Server::handleClientRead(size_t index)
 	}
 
 	if (client->getParser().getState() != RequestParser::COMPLETE) {
-		std::cout << "AAAAAAAAA" << std::endl;
+		// A: Debug message
+		// std::cout << "DEBUG IS NON BLOCKING" << std::endl;
 		return;
 	}
 
 	const Request &request = client->getParser().getRequest();
-	
 	//! Codigo Ainhoa
 	// 1. Obtener el valor de la cabecera "Host" para pasárselo a findBestServer
     // (Ajusta 'getHeader' al nombre del método que uses en tu clase Request)
@@ -443,15 +454,56 @@ void Server::handleClientWrite(size_t index)
 	std::cout << "[DEBUG HTTP] Intentando enviar " << client->getResponseBuffer().size() 
           << " bytes al cliente FD " << client->getFd() << std::endl;
 	*/
+	// a: Miramos el búfer ANTES de enviarlo para saber si contiene un error 4xx/5xx
+	// o si el ResponseBuilder de tu compañero ha puesto explícitamente Connection: close
+	bool isErrorOrClose = false;
+	std::string respBuffer = client->getResponseBuffer();
+	if (respBuffer.find("HTTP/1.1 4") == 0 || 
+		respBuffer.find("HTTP/1.1 5") == 0 ||
+		respBuffer.find("Connection: close") != std::string::npos)
+	{
+		isErrorOrClose = true;
+	}
 	int result = client->sendData();
 	if (result < 0)
 	{
 		removeClient(index);
 		return;
 	}
-	_pollFds[index].events = POLLIN;
+	// A: Check has no data to send, if so, reset events to POLLIN and reset parser for next request
+	if (!client->hasDataToSend())
+	{
+		// A: (pipelining) Si el cliente no tiene más datos para enviar, verificamos si la solicitud fue completa y si no hubo errores. Si todo está bien, reiniciamos el parser para permitir nuevas solicitudes (pipelining).
+		if (client->getParser().getState() != RequestParser::COMPLETE)
+		{
+			removeClient(index);
+			return;
+		}
+		// A: Si mandamos un error 400/500 o un close forzado, cortamos la conexión de raíz.
+		if (isErrorOrClose)
+		{
+			removeClient(index);
+			return;
+		}
+		const Request &request = client->getParser().getRequest();
+		const std::string *connHeader = request.getHeader("connection");
 
-	client->getParser().reset();
+		if ((connHeader != NULL && *connHeader == "close") || (request.getVersion() == "HTTP/1.0" && (connHeader == NULL || *connHeader != "keep-alive")))
+		{
+			removeClient(index);
+			return;
+		}
+
+		_pollFds[index].events = POLLIN;
+		client->getParser().reset();
+
+		// NUEVO: (pipelining)Forzamos una lectura inmediata para procesar el pipelining
+		handleClientRead(index);
+	}
+	else
+	{
+		_pollFds[index].events |= POLLOUT; // A: |= OR for bits
+	}
 	/*
 	// Solo volvemos a escuchar si ya vaciamos todo el buffer de salida
     if (client->hasDataToSend()) {
@@ -518,6 +570,7 @@ void Server::addClient(size_t socketIndex)
 	_pollFds.push_back(clientPollFd);
 }
 
+/*
 void Server::checkTimeouts()
 {
 	std::time_t now = std::time(NULL);
@@ -546,6 +599,57 @@ void Server::checkTimeouts()
 				break;
 			}
 		}
+	}
+}
+*/
+
+void Server::checkTimeouts()
+{
+	std::time_t now = std::time(NULL);
+	size_t i = 0;
+
+	while (i < _clients.size())
+	{
+		if (!_clients[i]->isTimedOut(now, CLIENT_TIMEOUT))
+		{
+			++i;
+			continue;
+		}
+
+		int fd = _clients[i]->getFd();
+		Client::State state = _clients[i]->getState();
+		
+		// 1. Translate the state for logging
+		std::string stateStr;
+		if (state == Client::READING) stateStr = "WAITING_FOR_REQUEST";
+		else if (state == Client::WAITING_FOR_CGI) stateStr = "WAITING_FOR_CGI";
+		else stateStr = "READY_TO_SEND";
+
+		// 2. Structured and improved log
+		std::cout << "[WARN] Client timeout after " << CLIENT_TIMEOUT 
+				  << "s of inactivity. FD: " << fd 
+				  << ", Server Port: " << _clients[i]->getServerPort()
+				  << ", State: " << stateStr << std::endl;
+
+		// 3. Courtesy response 408 Request Timeout
+		Response errorRes = ResponseBuilder::buildErrorResponse(408, "Request Timeout");
+		std::string responseString = errorRes.getHeadersAsString() + errorRes.getBody();
+		
+		_clients[i]->setResponse(responseString);
+
+		// 4. Change the event to POLLOUT instead of removing the client.
+		// The handleClientWrite loop will send the 408 and close the connection gracefully.
+		for (size_t j = 0; j < _pollFds.size(); ++j)
+		{
+			if (_pollFds[j].fd == fd)
+			{
+				_pollFds[j].events |= POLLOUT;
+				break;
+			}
+		}
+		
+		// Move to the next client (we no longer use removeClient here)
+		++i;
 	}
 }
 

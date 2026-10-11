@@ -1,5 +1,5 @@
 #include "network/Socket.hpp"
-
+#include <sstream> // A: for std::stringstream
 
 Socket::Socket(int port, const std::string &host)
 	: _fd(-1), _port(port), _host(host)
@@ -46,7 +46,8 @@ void Socket::create()
 	}
 }
 
-void Socket::bindSocket()
+// A: prohibited functions here
+/*void Socket::bindSocket()
 {
 	struct sockaddr_in address;
 
@@ -69,6 +70,61 @@ void Socket::bindSocket()
 				  << std::strerror(errno) << std::endl;
 		throw std::runtime_error("bind() failed");
 	}
+}
+*/
+
+void Socket::bindSocket()
+{
+	struct addrinfo hints;
+	struct addrinfo *res;
+
+	// Manually initialize to 0/NULL to avoid using std::memset (which is forbidden)
+	hints.ai_flags = 0;
+	hints.ai_family = AF_INET;       // IPv4
+	hints.ai_socktype = SOCK_STREAM; // TCP
+	hints.ai_protocol = 0;
+	hints.ai_addrlen = 0;
+	hints.ai_addr = NULL;
+	hints.ai_canonname = NULL;
+	hints.ai_next = NULL;
+
+	// getaddrinfo requires the port in text format (string)
+	std::stringstream ss;
+	ss << _port;
+	std::string portStr = ss.str();
+
+	// Host handling
+	std::string targetHost = _host;
+	const char* hostPtr;
+
+	if (targetHost == "0.0.0.0")
+	{
+		hints.ai_flags = AI_PASSIVE; // Listen on all interfaces
+		hostPtr = NULL;
+	} 
+	else
+	{
+		if (targetHost == "localhost") {
+			targetHost = "127.0.0.1";
+		}
+		hostPtr = targetHost.c_str();
+	}
+	// Call getaddrinfo (ALLOWED)
+	int status = getaddrinfo(hostPtr, portStr.c_str(), &hints, &res);
+	if (status != 0)
+	{
+		// gai_strerror is allowed by the subject
+		std::cerr << "getaddrinfo error: " << gai_strerror(status) << std::endl;
+		throw std::runtime_error("getaddrinfo failed");
+	}
+	if (bind(_fd, res->ai_addr, res->ai_addrlen) == -1)
+	{
+		freeaddrinfo(res); // VERY IMPORTANT: free memory before throwing
+		std::cerr << "Error: bind() failed: " << std::strerror(errno) << std::endl;
+		throw std::runtime_error("bind() failed");
+	}
+	// Free the linked list of addresses (ALLOWED)
+	freeaddrinfo(res);
 }
 
 void Socket::listenSocket()
