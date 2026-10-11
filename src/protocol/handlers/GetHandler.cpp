@@ -16,11 +16,28 @@ std::string readFile(const std::string &path) {
 	std::ifstream file(path.c_str(), std::ios::in | std::ios::binary);
 	if (!file.is_open())
 		return ("");
-	
+	/* // A: We comment for managing binary files (like images) correctly
 	std::ostringstream ss;
 	ss << file.rdbuf();
 	return (ss.str());
+    */
+    // Calculate the total size of the file
+    file.seekg(0, std::ios::end);
+    std::streamsize size = file.tellg();
+    file.seekg(0, std::ios::beg);
+    if (size <= 0)
+    {
+        return (""); // Empty file
+    }
+    // Initialize the buffer (std::string) with the exact size
+    std::string buffer(size, '\0');
+    // Read all binary bytes directly into the buffer
+    if (file.read(&buffer[0], size)) {
+        return (buffer);
+    }
+    return ("");
 }
+
 
 //! Ambas funciones son para reducir lines en los handle
 //! Implementar en el resto del codigo

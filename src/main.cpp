@@ -11,7 +11,7 @@ volatile sig_atomic_t g_running = 1;
 void handle_sigint(int signum)
 {
     (void)signum;
-    std::cout << "\n[INFO] Apagando el servidor de forma segura..." << std::endl;
+    std::cout << "\nStopping the server safely..." << std::endl;
     g_running = false;
 }
 

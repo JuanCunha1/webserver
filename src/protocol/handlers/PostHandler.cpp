@@ -274,7 +274,7 @@ Response ResponseBuilder::handlePostDirect() {
 		res.setStatusMessage("Created");
 		res.setHeader("Location", req.getUri());
 
-		std::string responseBody = "<html><body><h1>201 Created</h1><p>Resource created successfully.</p></body></html>";
+		std::string responseBody = "<html><body><h1>201 Created</h1><p>Resource created successfully.</p></body></html>\n";
 		res.setHeader("Content-Type", "text/html");
 		res.setHeader("Content-Length", Utils::toString(responseBody.size()));
 		if (shouldCloseConnection(200)) {
@@ -287,7 +287,7 @@ Response ResponseBuilder::handlePostDirect() {
 		res.setStatusCode(200);
 		res.setStatusMessage("OK");
 
-		std::string responseBody = "<html><body><h1>200 OK</h1><p>Resource updated successfully.</p></body></html>";
+		std::string responseBody = "<html><body><h1>200 OK</h1><p>Resource updated successfully.</p></body></html>\n";
 		res.setHeader("Content-Type", "text/html");
 		res.setHeader("Content-Length", Utils::toString(responseBody.size()));
 		if (shouldCloseConnection(200)) {
@@ -373,7 +373,7 @@ HandlerResult ResponseBuilder::handlePost() {
             res.setStatusMessage("OK");
         }
 
-        std::string msg = "<html><body><h1>Procesado correctamente</h1></body></html>";
+        std::string msg = "<html><body><h1>Procesado correctamente</h1></body></html>\n";
         res.setHeader("Content-Type", "text/html");
         res.setHeader("Content-Length", Utils::toString(msg.size()));
         if (shouldCloseConnection(200)) {
@@ -394,7 +394,7 @@ HandlerResult ResponseBuilder::handlePost() {
         res.setStatusCode(200);
         res.setStatusMessage("OK");
 
-        std::string msg = "<html><body><h1>Formulario procesado correctamente</h1></body></html>";
+        std::string msg = "<html><body><h1>Formulario procesado correctamente</h1></body></html>\n";
         res.setHeader("Content-Type", "text/html");
         res.setHeader("Content-Length", Utils::toString(msg.size()));
         if (shouldCloseConnection(200)) {

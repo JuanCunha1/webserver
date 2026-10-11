@@ -114,7 +114,6 @@ Socket *Server::findListeningSocket(int fd)
 
 void Server::run()
 {
-
 	while (g_running)
     {
 		int result = poll(
@@ -123,7 +122,14 @@ void Server::run()
 			1000
 		);
 		if (result == -1)
+		{
+			if (errno == EINTR)
+			{
+				// Poll was interrupted by a signal (like SIGINT), continue the loop to check g_running
+				continue;
+			}
 			throw std::runtime_error("poll() failed");
+		}
 		if (result == 0)
 		{
 			checkTimeouts();

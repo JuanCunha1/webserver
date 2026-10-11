@@ -100,7 +100,8 @@ int Client::sendData()
 
 	ssize_t bytesSent = send(
 		_fd,
-		_responseBuffer.c_str(),
+		//_responseBuffer.c_str(), // A: Commented to be able to manage images and binary data
+		_responseBuffer.data(), // Use data() to handle binary data correctly
 		_responseBuffer.size(),
 		0
 	);
