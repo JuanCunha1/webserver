@@ -5,6 +5,15 @@
 #include <iostream>
 #include <exception>
 
+volatile sig_atomic_t g_running = 1;
+
+void handle_sigint(int signum)
+{
+    (void)signum;
+    std::cout << "\n[INFO] Apagando el servidor de forma segura..." << std::endl;
+    g_running = false;
+}
+
 int main(int argc, char *argv[])
 {
 	if(argc != 2)
@@ -13,6 +22,7 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
+	signal(SIGINT, handle_sigint);
 	try
 	{
 		ConfigParser parser;
