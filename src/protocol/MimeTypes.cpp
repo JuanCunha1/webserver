@@ -26,6 +26,11 @@ std::string MimeTypes::getExtension(const std::string &path) {
 std::string MimeTypes::getType(const std::string &path) {
 	init();
 	std::string ext = getExtension(path);
+
+	// A: Add to convert the extension to lowercase to handle .JPG, .PNG, etc.
+	for (size_t i = 0; i < ext.length(); ++i) {
+		ext[i] = std::tolower(static_cast<unsigned char>(ext[i]));
+	}
 	std::map<std::string, std::string>::const_iterator it = _types.find(ext);
 	if (it != _types.end())
 		return (it->second);

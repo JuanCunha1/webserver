@@ -247,9 +247,23 @@ void CgiHandler::readFromCgi() {
         _isReadDone = true;
 
 		//* recogemos hijo para evitar zombis
+        /*
 		if (_pid > 0) {
             waitpid(_pid, NULL, WNOHANG); // WNOHANG no bloquea el event loop
             _pid = -1;
+        }
+        */
+        if (_pid > 0) {
+            int status;
+            pid_t wp = waitpid(_pid, &status, WNOHANG);
+            
+            // Si wp > 0, el hijo ha terminado y lo hemos recogido.
+            // Si wp == -1 y errno == ECHILD, ya no existe.
+            if (wp > 0 || (wp == -1 && errno == ECHILD)) {
+                _pid = -1;
+            }
+            // Si wp == 0, el hijo sigue vivo. NO cambiamos _pid a -1. 
+            // Así el destructor (~CgiHandler -> cleanup) podrá rematarlo.
         }
     } else {
 		// Si no hay datos aún, salimos sin marcar error
