@@ -1,4 +1,7 @@
 #include "network/Server.hpp"
+#include <csignal>
+
+extern volatile sig_atomic_t g_running;
 
 Server::Server()
 	:	_sockets(),
@@ -111,8 +114,9 @@ Socket *Server::findListeningSocket(int fd)
 
 void Server::run()
 {
-	while (true)
-	{
+
+	while (g_running)
+    {
 		int result = poll(
 			&_pollFds[0],
 			_pollFds.size(),
