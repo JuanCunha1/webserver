@@ -99,6 +99,7 @@ HandlerResult ResponseBuilder::buildResponse( ) {
 
 	//* Si normalizeUri devuelve "" pero la uri original no lo era, es un intento de escape (malicoso)
 	if (cleanUri.empty() && !uri.empty()) {
+		//std::cout << "Entrando en bloque 403" << std::endl;
 		result.staticResponse = handleError(403);
 		return (result);
 	}
@@ -148,8 +149,21 @@ bool ResponseBuilder::isCgiExtension(const std::string& ext, std::string& outCgi
     }
 
     for (size_t i = 0; i < total; ++i) {
-        if (loc.cgiExtension[i] == ext) {
+        /*
+		if (loc.cgiExtension[i] == ext) {
             outCgiBinary = loc.cgiPath[i];
+			std::cout << "outCgiBinary: " << outCgiBinary << " | loc.cgiPath[i]: " << loc.cgiPath[i] << std::endl;
+            return true;
+        }
+		*/
+		//Para solucionar el problema de que path es "" entonces no lo detecta como vacio
+		if (loc.cgiExtension[i] == ext) {
+            // Limpiamos las comillas literales si existen
+            if (loc.cgiPath[i] == "\"\"") {
+                outCgiBinary = ""; // String vacío real
+            } else {
+                outCgiBinary = loc.cgiPath[i];
+            }
             return true;
         }
     }

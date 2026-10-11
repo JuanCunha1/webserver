@@ -285,6 +285,7 @@ void Server::handleClientEvent(size_t index)
 		handleClientWrite(index);
 }
 
+/*
 void Server::handleClientRead(size_t index)
 {
 	Client *client = findClient(_pollFds[index].fd);
@@ -313,8 +314,8 @@ void Server::handleClientRead(size_t index)
 		return;
 	}
 
-	//! He actualizado esta parte porque era insuficiente cuando habia un error de parseo
-	//! No se construia una respuesta
+	// He actualizado esta parte porque era insuficiente cuando habia un error de parseo
+	// No se construia una respuesta
 	try
 	{
 		client->getParser().process();
@@ -328,11 +329,11 @@ void Server::handleClientRead(size_t index)
 
 		client->setResponse(responseString);
 
-		//* Despertar a poll() para que escriba la respuesta al cliente
+		// Despertar a poll() para que escriba la respuesta al cliente
 		_pollFds[index].events |= POLLOUT;
 		return;
 	}
-	//* para casos en los que no sera un error de parseo (igual se puede eliminar)
+	// para casos en los que no sera un error de parseo (igual se puede eliminar)
 	catch (const std::exception &e)
 	{
 		std::cerr << "Unknown parse error: " << e.what() << std::endl;
@@ -347,7 +348,7 @@ void Server::handleClientRead(size_t index)
 	}
 
 	const Request &request = client->getParser().getRequest();
-	//! Codigo Ainhoa
+	// Codigo Ainhoa
 	// 1. Obtener el valor de la cabecera "Host" para pasárselo a findBestServer
     // (Ajusta 'getHeader' al nombre del método que uses en tu clase Request)
 	const std::string *hostValue = request.getHeader("Host");
@@ -383,46 +384,21 @@ void Server::handleClientRead(size_t index)
         return; 
     }
 
-	//! Codigo gustavo
-	/*
-	ConfigServer *serverConfig =
-		findServerConfig(client->getServerPort());
-
-	if (serverConfig == NULL)
-	{
-		std::cerr << "No server config for port "
-				  << client->getServerPort()
-				  << std::endl;
-		return;
-	}
-
-	ConfigLocation *location =
-		findLocation(*serverConfig, request.getUri());
-
-	if (location == NULL)
-	{
-		std::cerr << "No location for URI: "
-				  << request.getUri()
-				  << std::endl;
-		return;
-	}
-	*/
-
 	ResponseBuilder builder(request, *location, *serverConfig);
 
 	HandlerResult handlerResult = builder.buildResponse();
 
 	if (handlerResult.isCgi)
 	{
-		//* Guardamos handler en cliente
+		// Guardamos handler en cliente
 		client->setCgiHandler(handlerResult.cgiHandler);
 		client->setState(Client::WAITING_FOR_CGI);
 
-		//* Obtenemos los FDs de lectura y escritura del CgiHandler
+		// Obtenemos los FDs de lectura y escritura del CgiHandler
 		int cgiReadFd = handlerResult.cgiHandler->getReadFd();
 		int cgiWriteFd = handlerResult.cgiHandler->getWriteFd();
 
-		//* Añadimos el pipe de lectura al poll (POLLIN)
+		// Añadimos el pipe de lectura al poll (POLLIN)
 		if (cgiReadFd != -1) {
 			struct pollfd pfd;
 			pfd.fd = cgiReadFd;
@@ -431,7 +407,7 @@ void Server::handleClientRead(size_t index)
 			_pollFds.push_back(pfd);
 		}
 
-		//* Si es un POST y hay body, añadimos el pipe de escritura al poll (POLLOUT)
+		// Si es un POST y hay body, añadimos el pipe de escritura al poll (POLLOUT)
 		if (cgiWriteFd != -1 && !request.getBody().empty()) {
 			struct pollfd pfd;
 			pfd.fd = cgiWriteFd;
@@ -450,6 +426,111 @@ void Server::handleClientRead(size_t index)
 	client->setResponse(response);
 
 	_pollFds[index].events |= POLLOUT;
+}
+*/
+void Server::handleClientRead(size_t index)
+{
+	Client *client = findClient(_pollFds[index].fd);
+	if (client == NULL)
+	{
+		removeClient(index);
+		return;
+	}
+
+	int result = client->receive();
+	if (result == 0 || result == -2)
+	{
+		removeClient(index);
+		return;
+	}
+	// result == -1 (EAGAIN): no hay bytes nuevos, pero procesamos lo que haya
+	processRequest(index);
+}
+
+void Server::processRequest(size_t index)
+{
+	Client *client = findClient(_pollFds[index].fd);
+	if (client == NULL)
+		return;
+
+	try
+	{
+		client->getParser().process();
+	}
+	catch (const HttpException &e)
+	{
+		std::cerr << "HTTP parse error: " << e.what()
+				  << " (Code: " << e.getStatusCode() << ")" << std::endl;
+		Response errorRes = ResponseBuilder::buildErrorResponse(e.getStatusCode(), e.what());
+		client->setResponse(errorRes.getHeadersAsString() + errorRes.getBody());
+		_pollFds[index].events = POLLOUT;   // solo escribir
+		return;
+	}
+	catch (const std::exception &e)
+	{
+		std::cerr << "Unknown parse error: " << e.what() << std::endl;
+		removeClient(index);
+		return;
+	}
+
+	if (client->getParser().getState() != RequestParser::COMPLETE)
+		return;   // faltan bytes, seguimos con POLLIN
+
+	const Request &request = client->getParser().getRequest();
+	const std::string *hostValue = request.getHeader("Host");
+	std::string hostHeader = hostValue != NULL ? *hostValue : "";
+
+	const ConfigServer *serverConfig =
+		UrlMatcher::findBestServer(_serverConfigs, client->getServerPort(), hostHeader);
+	const ConfigLocation *location = (serverConfig != NULL)
+		? UrlMatcher::findBestLocation(*serverConfig, request.getUri())
+		: NULL;
+
+	if (serverConfig == NULL || location == NULL)
+	{
+		int code = (serverConfig == NULL) ? 400 : 404;
+		Response errorRes = ResponseBuilder::buildErrorResponse(code, code == 400 ? "Bad Request" : "Not Found");
+		client->setResponse(errorRes.getHeadersAsString() + errorRes.getBody());
+		_pollFds[index].events = POLLOUT;
+		return;
+	}
+
+	ResponseBuilder builder(request, *location, *serverConfig);
+	HandlerResult handlerResult = builder.buildResponse();
+
+	if (handlerResult.isCgi)
+	{
+		client->setCgiHandler(handlerResult.cgiHandler);
+		client->setState(Client::WAITING_FOR_CGI);
+
+		int cgiReadFd = handlerResult.cgiHandler->getReadFd();
+		int cgiWriteFd = handlerResult.cgiHandler->getWriteFd();
+
+		// Mientras el CGI trabaja, no leemos del cliente
+		_pollFds[index].events = 0;
+
+		if (cgiReadFd != -1)
+		{
+			struct pollfd pfd;
+			pfd.fd = cgiReadFd;
+			pfd.events = POLLIN;
+			pfd.revents = 0;
+			_pollFds.push_back(pfd);
+		}
+		if (cgiWriteFd != -1 && !request.getBody().empty())
+		{
+			struct pollfd pfd;
+			pfd.fd = cgiWriteFd;
+			pfd.events = POLLOUT;
+			pfd.revents = 0;
+			_pollFds.push_back(pfd);
+		}
+		return;
+	}
+
+	client->setResponse(handlerResult.staticResponse.getHeadersAsString()
+					  + handlerResult.staticResponse.getBody());
+	_pollFds[index].events = POLLOUT;
 }
 
 void Server::handleClientWrite(size_t index)
@@ -505,10 +586,10 @@ void Server::handleClientWrite(size_t index)
 		}
 
 		_pollFds[index].events = POLLIN;
+		client->setState(Client::READING);
 		client->getParser().reset();
 
-		// NUEVO: (pipelining)Forzamos una lectura inmediata para procesar el pipelining
-		handleClientRead(index);
+		processRequest(index);
 	}
 	else
 	{

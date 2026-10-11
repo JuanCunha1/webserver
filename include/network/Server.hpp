@@ -60,6 +60,8 @@ class Server
 		Server(std::vector<ConfigServer> serverConfigs);
 		~Server();
 
+		void	processRequest(size_t index);
+
 		void checkTimeouts();
 
 		void start();
