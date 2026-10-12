@@ -3,12 +3,12 @@ import os
 import urllib.parse
 import html
 
-# 1. Cabeceras HTTP obligatorias
+# 1. Mandatory HTTP headers
 print("Content-Type: text/html; charset=utf-8")
 print("Status: 200 OK")
 print()
 
-# 2. Base de datos simulada
+# 2. Simulated database
 vuelos_db = [
     {"origen": "BCN", "destino": "TIA", "fecha": "2026-10-15", "precio": "85€", "aerolinea": "Albanian Air"},
     {"origen": "BCN", "destino": "BTS", "fecha": "2026-10-15", "precio": "45€", "aerolinea": "Danube Wings"},
@@ -16,16 +16,16 @@ vuelos_db = [
     {"origen": "MAD", "destino": "BCN", "fecha": "2026-10-15", "precio": "30€", "aerolinea": "Iberia Express"}
 ]
 
-# 3. Extraer y parsear la QUERY_STRING
+# 3. Extract and parse the QUERY_STRING
 query_string = os.environ.get("QUERY_STRING", "")
 params = urllib.parse.parse_qs(query_string)
 
-# Extraer valores individuales (parse_qs devuelve listas, por eso tomamos el [0])
+# Extract individual values (parse_qs returns lists, hence we take [0])
 origen = params.get("origen", [""])[0].upper()
 destino = params.get("destino", [""])[0].upper()
 fecha = params.get("fecha", [""])[0]
 
-# 4. Construir la respuesta HTML
+# 4. Build the HTML response
 print("<!DOCTYPE html>")
 print("<html lang='es'>")
 print("<head><title>Buscador de Vuelos CGI</title></head>")
@@ -40,7 +40,7 @@ print("  <button type='submit'>Buscar</button>")
 print("</form>")
 print("<hr>")
 
-# 5. Lógica de búsqueda
+# 5. Search logic
 if origen or destino or fecha:
     print("<h3>Resultados de búsqueda:</h3>")
     resultados = []

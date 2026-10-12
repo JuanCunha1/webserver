@@ -44,7 +44,7 @@ void RequestParser::process() {
 		//* Empty/clrn/rn check
 		checkInitialEmptyLines();
 
-		//* Orquestador de la máquina de estados
+		//* State machine orchestrator
 		while (_state != COMPLETE && _state != ERROR) {
 			State prevState = _state;
 			if (_state == REQUEST_LINE) {
@@ -60,14 +60,14 @@ void RequestParser::process() {
 				processChunked();
 			}
 
-			// Si el estado no ha cambiado, necesitamos leer más datos del socket
+			// If the state has not changed, we need to read more data from the socket
 			if (_state == prevState) {
 				break;
 			}
 		}
 	} catch (const HttpException &e) {
 		_state = ERROR;
-		throw; // Relanzamos hacia el bloque de respuesta
+		throw; // Rethrow to the response block
 	}
 }
 
@@ -107,7 +107,7 @@ void RequestParser::processHeadersState() {
 				validateHost(req);
 			}
 			
-			//* Comprobaciones de Transfer-Encoding y Content-Length
+			//* Transfer-Encoding and Content-Length checks
 			setupBodyParsing();
 			break;
 		}
@@ -146,7 +146,7 @@ void RequestParser::processChunked() {
 				processChunkTrailerState();
 			}
 
-			// Salimos si el estado es final o si no ha cambiado (falta leer más del buffer)
+			// Exit if the state is final or has not changed (more of the buffer needs to be read)
 			if (_state == COMPLETE || _state == ERROR || _state == prevState) {
 				break;
 			}
@@ -191,7 +191,7 @@ bool RequestParser::parseHeaderLine(const std::string &line) {
 		throw HttpException(400);
 	}
 	//! HTTP (RFC 7230 / RFC 9112) standard check
-	//* Sin key, espacio previo, tab previo
+	//* No key, leading space, leading tab
 	if (colonPos == 0 || line[colonPos - 1] == ' ' || line[colonPos - 1] == '\t') {
 		_state = ERROR;
 		throw HttpException(400);
@@ -199,8 +199,8 @@ bool RequestParser::parseHeaderLine(const std::string &line) {
 	std::string key = line.substr(0, colonPos);
 	std::string value = line.substr(colonPos + 1);
 	
-	// Nota: Si declaras isValidHeaderName en el hpp o en Utils, inclúyela aquí. 
-	// Asumo que la mantienes como función estática separada o en Utils.
+	// Note: If you declare isValidHeaderName in the hpp or in Utils, include it here. 
+	// I assume you keep it as a separate static function or in Utils.
 	if (!isValidHeaderName(key)) {
 		_state = ERROR;
 		throw HttpException(400);
@@ -284,7 +284,7 @@ void RequestParser::processChunkTrailerState() {
 		_state = COMPLETE;
 		req.isComplete = true;
 		
-		//*Sustituimos la cabecera para el CGI
+		//*Replace the header for the CGI
 		req.headers.erase("transfer-encoding");
 		std::ostringstream oss;
 		oss << req.body.size();		
@@ -293,19 +293,19 @@ void RequestParser::processChunkTrailerState() {
 }
 
 void RequestParser::validateMethod(const std::string &method) {
-	//! Comprobaciones method
+	//! Method checks
 	if (!Utils::isAllUpper(method)) {
 		throw HttpException(400);
 	}
-	//* Para evitar errores en testers si no es passan cabeceras
-	//* Porque como hacemos la comprobación en la respuesta salta otro error antes...
+	//* To avoid errors in testers if no headers are passed
+	//* Because since we do the check in the response, another error triggers first...
 	if (method != "GET" && method != "POST" && method != "DELETE") {
 		throw HttpException(501); // 501 Not Implemented
 	}
 }
 
 void RequestParser::validateVersion(const std::string &version) {
-	//! Comprobaciones version
+	//! Version checks
 	if (version.size() < 5 || version.compare(0, 5, "HTTP/") != 0) {
 		throw HttpException(400);
 	}
@@ -315,7 +315,7 @@ void RequestParser::validateVersion(const std::string &version) {
 }
 
 void RequestParser::parseUri(const std::string &rawUri) {
-	//! Comprobaciones uri
+	//! URI checks
 	if (rawUri.compare(0, 1, "/") != 0) {
 		throw HttpException(400);
 	}
@@ -406,7 +406,7 @@ unsigned long RequestParser::parseContentLength(const std::string &value) {
 }
 
 bool RequestParser::handleDuplicateHeader(const std::string &key, const std::string &value) {
-	// #15 y #23: Manejo de cabeceras duplicadas
+	// #15 y #23: Handling of duplicate headers
 	if (req.headers.find(key) != req.headers.end()) {
 		//* more than one HOST header
 		if (key == "host") {
@@ -417,7 +417,7 @@ bool RequestParser::handleDuplicateHeader(const std::string &key, const std::str
 			if (req.headers[key] != value) {
 				throw HttpException(400);
 			}
-			return (true); // Si es idéntico se puede tolerar y saltamos la asignación final
+			return (true); // If it is identical it can be tolerated and we skip the final assignment
 		}
 	}
 	return (false);
@@ -430,7 +430,7 @@ bool RequestParser::parseLine(std::string &line) {
 	}
 	if (lf_pos == 0 || _buffer[lf_pos - 1] != '\r') {
 		_state = ERROR;
-		throw HttpException(400); // Salto de línea inválido (solo LF) -> 400 Bad Request
+		throw HttpException(400); // Invalid line break (LF only) -> 400 Bad Request
 	}
 
 	line = _buffer.substr(0, lf_pos - 1);
@@ -471,5 +471,5 @@ Request &RequestParser::getRequest() {
 
 void RequestParser::reset() {
     _state = REQUEST_LINE;
-    req = Request(); // Reinicia el objeto de la petición (limpia headers, body, uri, etc.)
+    req = Request(); // Resets the request object (clears headers, body, uri, etc.)
 }

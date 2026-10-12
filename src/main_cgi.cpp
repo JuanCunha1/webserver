@@ -24,7 +24,7 @@ int main() {
         	"\r\n";
         	//"nombre=estudiante";
 
-		//! Estaria bien recibir de un std::vector<char> para memoria dinamica automatica
+		//! It would be nice to receive a std::vector<char> for automatic dynamic memory
 
 		size_t maxBodySize = 10000;
 		RequestParser::State state = RequestParser::REQUEST_LINE;
@@ -49,7 +49,7 @@ int main() {
 		
 		
 		// --- RESPONSE ---
-		//! La ruta que le pasamos es la que recibo del conf (ahora es provisional)
+		//! The path we pass is the one I get from the conf (currently provisional)
 		std::string targetPath = "./www" + req.getUri();
 
 		/*
@@ -57,7 +57,7 @@ int main() {
 
 		if (res.isCgi == false) {
 			std::cout << "--- SERIALIZE ---" << std::endl;
-			//Se cambia por Serialize Real haciendo el send
+			//To be replaced by the real Serialize when doing the send
 			//res.setStatusCode(0);
 			std::cout << "Serialize: " << res.staticResponse.getHeadersAsString() << res.staticResponse.getBody() <<std::endl;
 		}
@@ -65,13 +65,13 @@ int main() {
 			
 		} catch (const HttpException &e) {
 			res.staticResponse = ResponseBuilder::handleError(req, e.getStatusCode());
-			//Se cambia por Serialize Real haciendo el send
+			//To be replaced by the real Serialize when doing the send
 			std::cout << "Serialize: " << res.staticResponse.getHeadersAsString() << res.staticResponse.getBody() <<std::endl;
 			//send(client_fd, errHeaders.data(), errHeaders.size(), 0);
 			//send(client_fd, errorRes.getBody().data(), errorRes.getBody().size(), 0);
 		}
 		*/
-	//* --- EJECUCIÓN DEL HANDLER ---
+	//* --- HANDLER EXECUTION ---
 		res = ResponseBuilder::buildResponse(req, targetPath, loc);
 
 		if (res.isCgi == false) {
@@ -81,15 +81,15 @@ int main() {
 		else {
 			std::cout << "--- CGI DETECTADO: INICIANDO BUCLE DE PRUEBA ---" << std::endl;
 				
-			// Simulación del multiplexor: forzamos las llamadas hasta que termine
+			// Multiplexer simulation: we force the calls until it finishes
 			while (!res.cgiHandler->isReadDone() && !res.cgiHandler->hasError()) {
 					
-				// Si el CGI espera datos en STDIN (ej. un POST)
+				// If the CGI expects data on STDIN (e.g. a POST)
 				if (!res.cgiHandler->isWriteDone()) {
 					res.cgiHandler->writeToCgi();
 				}
 					
-				// Leemos del STDOUT del CGI
+				// Read from the CGI's STDOUT
 				res.cgiHandler->readFromCgi();
 			}
 
@@ -103,12 +103,12 @@ int main() {
 				std::cout << "Serialize:\n" << cgiRes.getHeadersAsString() << cgiRes.getBody() << std::endl;
 			}
 
-			// Limpieza manual de la memoria
+			// Manual memory cleanup
 			delete res.cgiHandler;
 			res.cgiHandler = NULL;
 		}
 	}
-	catch (const HttpException &e) { // Asumiendo que tienes esta excepción
+	catch (const HttpException &e) { // Assuming you have this exception
         res.staticResponse = ResponseBuilder::handleError(req, e.getStatusCode());
         std::cout << "--- ERROR SERIALIZE ---\n" << res.staticResponse.getHeadersAsString() << res.staticResponse.getBody() << std::endl;
     }

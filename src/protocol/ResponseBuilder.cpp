@@ -35,21 +35,21 @@ bool ResponseBuilder::shouldCloseConnection(int statusCode) {
 HandlerResult ResponseBuilder::buildResponse( ) {
 	HandlerResult result;
 
-	//* Gestión redirecciones
+	//* Redirection handling
 	if (!loc.returnRedirections.empty()) {
 		Response res;
 		int redirectCode = loc.returnRedirections[0].returnCode;
 				
-		// Si en el conf pusieron "return /nueva-ruta;" sin código, por defecto es 302
+		// If the conf has "return /new-route;" without a code, the default is 302
 		if (redirectCode == 0) {
 			redirectCode = 302;
 		}
 
 		res.setStatusCode(redirectCode);
-		// Asumiendo que has movido getDefaultStatusMessage para que sea accesible
+		// Assuming getDefaultStatusMessage has been moved so it is accessible
 		res.setStatusMessage(getDefaultStatusMessage(redirectCode)); 
 		
-		// El header clave para que el navegador sepa a dónde ir
+		// The key header so the browser knows where to go
 		res.setHeader("Location", loc.returnRedirections[0].returnUrl);
 		res.setHeader("Content-Length", "0"); 
 		res.setHeader("Connection", "keep-alive");
@@ -89,7 +89,7 @@ HandlerResult ResponseBuilder::buildResponse( ) {
 	}
 	*/
 
-	//* Prevención Path Traversal (normalizeUri - el que verifica)
+	//* Path Traversal prevention (normalizeUri - the one that verifies)
 	std::string cleanUri = req.getUri();
 
 	cleanUri = Utils::urlDecode(cleanUri);
@@ -103,7 +103,7 @@ HandlerResult ResponseBuilder::buildResponse( ) {
 		return (result);
 	}
 	//uri = cleanUri;
-	//* hasta aquí
+	//* up to here
 	// NOW, on the already clean URI, strip the location prefix
 	std::string uri = cleanUri;
 	if (loc.path != "/" && uri.compare(0, loc.path.length(), loc.path) == 0) {
@@ -162,7 +162,7 @@ bool ResponseBuilder::isCgiExtension(const std::string& ext, std::string& outCgi
     return false;
 }
 
-//* Limpia los ./ y resuelve los ../
+//* Cleans the ./ and resolves the ../
 std::string ResponseBuilder::normalizeUri(const std::string& uri) {
     std::vector<std::string> parts;
     size_t start = 0;
@@ -173,12 +173,12 @@ std::string ResponseBuilder::normalizeUri(const std::string& uri) {
 
         if (part == "..") {
             if (!parts.empty()) {
-                parts.pop_back(); // Elimina la carpeta anterior válida
+                parts.pop_back(); // Remove the previous valid folder
             } else {
-                return ""; // Intento de Path Traversal bloqueado
+                return ""; // Path Traversal attempt blocked
             }
         } else if (!part.empty() && part != ".") {
-            parts.push_back(part); // Guarda el directorio válido
+            parts.push_back(part); // Store the valid directory
         }
 
         if (end == std::string::npos) break;

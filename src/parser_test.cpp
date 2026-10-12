@@ -18,7 +18,7 @@ struct TestCase {
     std::string category;
     std::string rawRequest;
     size_t      maxBodySize;
-    int         expectedCode; // Código HTTP que debe arrojar (400, 411, 413, 414, 501, 505...)
+    int         expectedCode; // HTTP code it must yield (400, 411, 413, 414, 501, 505...)
 };
 
 static void runSingleTest(const TestCase &tc, int index, int &passed, int &failed) {
@@ -28,24 +28,24 @@ static void runSingleTest(const TestCase &tc, int index, int &passed, int &faile
 
     try {
 		std::string rawBuffer = tc.rawRequest;
-        // 1. Ejecutar el parser con la petición de prueba
+        // 1. Run the parser with the test request
         RequestParser::process(rawBuffer, req, state, tc.maxBodySize);
 
-        // 2. Si el parseo tiene éxito (no lanzó excepción), pasa al ResponseBuilder
+        // 2. If parsing succeeds (no exception thrown), move on to the ResponseBuilder
         std::string targetPath = "./www" + req.getUri();
         res = ResponseBuilder::buildResponse(req, targetPath);
 
     } catch (const HttpException &e) {
-        // Si el parser lanzó la excepción por sintaxis/protocolo, construimos la respuesta de error
+        // If the parser threw the exception due to syntax/protocol, build the error response
         res = ResponseBuilder::handleError(req, e.getStatusCode());
 
-        // Verificamos además que el estado de la máquina haya quedado bloqueado en ERROR
+        // Also verify that the state machine has been left locked in ERROR
         if (state != RequestParser::ERROR) {
             std::cout << "[\033[33mWARN\033[0m] #" << std::setw(2) << index << " "
                       << tc.name << " -> Lanzó HttpException pero state no quedó en ERROR." << std::endl;
         }
     } catch (const std::exception &e) {
-        // Cualquier otro error inesperado (bad_alloc, etc.)
+        // Any other unexpected error (bad_alloc, etc.)
         res = ResponseBuilder::handleError(req, 500);
     }
 
@@ -70,7 +70,7 @@ int main() {
     std::vector<TestCase> tests;
 
     // =========================================================================
-    // GRUPO 1: ERRORES EN LA REQUEST LINE (Línea de petición)
+    // GROUP 1: REQUEST LINE ERRORS
     // =========================================================================
     {
         TestCase t;
@@ -191,7 +191,7 @@ int main() {
     }
 
     // =========================================================================
-    // GRUPO 2: ERRORES EN LAS CABECERAS (Headers)
+    // GROUP 2: HEADER ERRORS
     // =========================================================================
     {
         TestCase t;
@@ -249,7 +249,7 @@ int main() {
     }
 
     // =========================================================================
-    // GRUPO 3: ERRORES DE PAYLOAD Y CONTENT-LENGTH
+    // GROUP 3: PAYLOAD AND CONTENT-LENGTH ERRORS
     // =========================================================================
     {
         TestCase t;
@@ -292,13 +292,13 @@ int main() {
         t.category = "Payload";
         t.name = "Content-Length supera maxBodySize (413)";
         t.rawRequest = "POST /upload HTTP/1.1\r\nHost: localhost\r\nContent-Length: 100\r\n\r\n" + std::string(100, 'x');
-        t.maxBodySize = 20; // Limite deliberadamente inferior
+        t.maxBodySize = 20; // Deliberately lower limit
         t.expectedCode = 413;
         tests.push_back(t);
     }
 
     // =========================================================================
-    // GRUPO 4: TRANSFER-ENCODING Y HTTP REQUEST SMUGGLING
+    // GROUP 4: TRANSFER-ENCODING AND HTTP REQUEST SMUGGLING
     // =========================================================================
     {
         TestCase t;
@@ -329,7 +329,7 @@ int main() {
     }
 
     // =========================================================================
-    // EJECUCIÓN
+    // EXECUTION
     // =========================================================================
     std::cout << "\n================== TESTER DE PARSEO HTTP (EXCEPCIONES) ==================\n" << std::endl;
     int passed = 0;

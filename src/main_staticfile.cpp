@@ -24,7 +24,7 @@ int main() {
         	"\r\n";
         	"nombre=estudiante";
 
-		//! Estaria bien recibir de un std::vector<char> para memoria dinamica automatica
+		//! It would be nice to receive a std::vector<char> for automatic dynamic memory
 
 		size_t maxBodySize = 10000;
 		RequestParser::State state = RequestParser::REQUEST_LINE;
@@ -49,20 +49,20 @@ int main() {
 		
 		
 		// --- RESPONSE ---
-		//! La ruta que le pasamos es la que recibo del conf (ahora es provisional)
+		//! The path we pass is the one I get from the conf (currently provisional)
 		std::string targetPath = "./www" + req.getUri();
 
 		res = ResponseBuilder::buildResponse(req, targetPath, loc);
 
 		if (res.isCgi == false) {
 			std::cout << "--- SERIALIZE ---" << std::endl;
-			//Se cambia por Serialize Real haciendo el send
+			//To be replaced by the real Serialize when doing the send
 			//res.setStatusCode(0);
 			std::cout << "Serialize: " << res.staticResponse.getHeadersAsString() << res.staticResponse.getBody() <<std::endl;
 		}	
 	} catch (const HttpException &e) {
 		res.staticResponse = ResponseBuilder::handleError(req, e.getStatusCode());
-		//Se cambia por Serialize Real haciendo el send
+		//To be replaced by the real Serialize when doing the send
 		std::cout << "Serialize: " << res.staticResponse.getHeadersAsString() << res.staticResponse.getBody() <<std::endl;
 		//send(client_fd, errHeaders.data(), errHeaders.size(), 0);
 		//send(client_fd, errorRes.getBody().data(), errorRes.getBody().size(), 0);

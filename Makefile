@@ -16,7 +16,7 @@ NETWORK_SRCS = \
 	$(SRC_DIR)/network/Client.cpp \
 
 
-# Archivos comunes que necesitan tanto el servidor como los tests
+# Common files needed by both the server and the tests
 COMMON_SRCS = src/protocol/RequestParser.cpp \
               src/protocol/Request.cpp \
               src/protocol/Response.cpp \

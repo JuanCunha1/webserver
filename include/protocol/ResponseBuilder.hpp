@@ -40,13 +40,13 @@ class ResponseBuilder {
 	public:
 		ResponseBuilder(const Request &request, const ConfigLocation &location, const ConfigServer &server);
 		~ResponseBuilder();
-		//! Para poderlo usar en el main lo pongo en public
+		//! To be able to use it in main I make it public
 		Response handleError(int errorCode);
 
 		static std::string getDefaultStatusMessage(int statusCode);
 
-		//! Para poder usar en server
+		//! To be able to use it in server
 		static Response buildErrorResponse(int code, const std::string &msg);
-		//* Esta función se va a encargar de montar la respuesta
+		//* This function will take care of assembling the response
 		HandlerResult buildResponse();
 };

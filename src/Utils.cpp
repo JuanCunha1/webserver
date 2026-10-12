@@ -28,14 +28,14 @@ std::string Utils::getCurrentDateGMT() {
     return std::string(buffer);
 }
 
-//* Transforma los caracteres tipo %2F(2F hexadecimal de la tabla ascii) en su caracter
+//* Transforms characters like %2F (2F hexadecimal of the ascii table) into their character
 std::string Utils::urlDecode(const std::string& str) {
     std::string result;
     result.reserve(str.length());
 
     for (size_t i = 0; i < str.length(); ++i) {
         if (str[i] == '%') {
-            // Asegurarnos de que quedan al menos 2 caracteres después del '%'
+            // Make sure at least 2 characters remain after the '%'
             if (i + 2 < str.length()) {
                 int value;
                 std::istringstream is(str.substr(i + 1, 2));
@@ -43,13 +43,13 @@ std::string Utils::urlDecode(const std::string& str) {
                     result += static_cast<char>(value);
                     i += 2;
                 } else {
-                    result += '%'; // Si falla la conversión, lo dejamos igual
+                    result += '%'; // If the conversion fails, leave it as is
                 }
             } else {
                 result += '%';
             }
         } else if (str[i] == '+') {
-            // '+' en una URL == espacio
+            // '+' in a URL == space
             result += ' ';
         } else {
             result += str[i];

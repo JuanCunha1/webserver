@@ -92,13 +92,13 @@ void ConfigParser::_validatePathTraversal()
     }
 }
 
-// Función auxiliar estática/privada para verificar si un path apunta a la raíz del sistema
+// Static/private helper function to check whether a path points to the system root
 static bool isSystemRootPath(const std::string& path)
 {
     if (path.empty())
         return false;
 
-    // Si solo contiene una o más barras consecutivas ("/", "///", etc.)
+    // If it only contains one or more consecutive slashes ("/", "///", etc.)
     size_t firstNonSlash = path.find_first_not_of('/');
     if (firstNonSlash == std::string::npos)
         return true;
@@ -110,24 +110,24 @@ void ConfigParser::_validateForbiddenRoots()
 {
     for (size_t i = 0; i < _servers.size(); ++i)
     {
-        // 1. Validar el root global del server (si está configurado)
+        // 1. Validate the server's global root (if configured)
         if (isSystemRootPath(_servers[i].root))
         {
             throw std::runtime_error("Config Error: Server root cannot point to system root ('/')");
         }
 
-        // 2. Validar cada location
+        // 2. Validate each location
         for (size_t j = 0; j < _servers[i].locations.size(); ++j)
         {
             const ConfigLocation& loc = _servers[i].locations[j];
 
-            // Validar locationRoot
+            // Validate locationRoot
             if (isSystemRootPath(loc.locationRoot))
             {
                 throw std::runtime_error("Config Error: locationRoot cannot point to system root ('/') in location '" + loc.path + "'");
             }
 
-            // Validar uploadStore por si alguien intenta subir archivos directamente a /
+            // Validate uploadStore in case someone tries to upload files directly to /
             if (isSystemRootPath(loc.uploadStore))
             {
                 throw std::runtime_error("Config Error: uploadStore cannot point to system root ('/') in location '" + loc.path + "'");
@@ -148,7 +148,7 @@ void ConfigParser::_validateSemantic()
         if (_servers[i].clientMaxBodySize == 0)
             _servers[i].clientMaxBodySize = 1000000; // 1 MB
         if (_servers[i].root == "")
-            _servers[i].root = "www"; // O la carpeta pública que uséis
+            _servers[i].root = "www"; // Or whichever public folder you use
         if (_servers[i].indexFile == "")
             _servers[i].indexFile = "index.html";
         

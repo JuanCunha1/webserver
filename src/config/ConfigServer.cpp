@@ -58,7 +58,7 @@ ConfigLocation::ConfigLocation()
 {
     this->autoindex = false;
     this->isAutoindexDefined = false;
-    //sentinel values (valores centinela) for avoiding repetitions in these var
+    //sentinel values for avoiding repetitions in these var
     this->locationRoot = "";
     this->indexFile = "";
     this->uploadStore = "";
@@ -95,7 +95,7 @@ ConfigLocation::~ConfigLocation()
 // Canonical form ConfigServer
 ConfigServer::ConfigServer()
 {
-    //sentinel values (valores centinela) for avoiding repetitions in these var
+    //sentinel values for avoiding repetitions in these var
     this->port = -1;
     this->host = "";
     this->root = "";

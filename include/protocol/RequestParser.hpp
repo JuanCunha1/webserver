@@ -46,15 +46,15 @@ class RequestParser {
 		void processHeadersState();
 		void processContentLengthState();
 
-		//* Para parseRequestLine
+		//* For parseRequestLine
 		void validateMethod(const std::string &method);
 		void validateVersion(const std::string &version);
 		void parseUri(const std::string &rawUri);
 		
-		//* Para parseHeaderLine
+		//* For parseHeaderLine
 		bool handleDuplicateHeader(const std::string &key, const std::string &value);
 
-		//* Para processChunked
+		//* For processChunked
 		void processChunkSizeState();
 		void processChunkDataState();
 		void processChunkTrailerState();

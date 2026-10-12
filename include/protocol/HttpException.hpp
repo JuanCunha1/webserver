@@ -28,7 +28,7 @@ private:
     }
 
 public:
-    // Si no le pasas mensaje, usa el predeterminado por el estándar
+    // If no message is passed, it uses the standard's default
     explicit HttpException(int code, const std::string &detail = "")
         : _statusCode(code) {
         if (detail.empty()) {

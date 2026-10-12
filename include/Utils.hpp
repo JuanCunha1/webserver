@@ -4,7 +4,7 @@
 
 class Utils {
 private:
-	//* Constructores y destructor privados para evitar que la clase se instancie
+	//* Private constructors and destructor to prevent the class from being instantiated
 	Utils();
 	Utils(const Utils& other);
 	Utils& operator=(const Utils& other);
