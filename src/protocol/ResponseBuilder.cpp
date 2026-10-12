@@ -81,13 +81,13 @@ HandlerResult ResponseBuilder::buildResponse( ) {
 	if (path[path.size() - 1] == '/')
 		path.erase(path.size() - 1);
 
-	std::string uri = req.getUri();
-
+	/* // A: change of order to solve the problem of path traversal, first normalize the URI, then strip the location prefix
 	if (loc.path != "/" &&
 		uri.compare(0, loc.path.length(), loc.path) == 0)
 	{
 		uri = uri.substr(loc.path.length());
 	}
+	*/
 
 	//* Prevención Path Traversal (normalizeUri - el que verifica)
 	std::string cleanUri = req.getUri();
@@ -97,14 +97,18 @@ HandlerResult ResponseBuilder::buildResponse( ) {
 	cleanUri = normalizeUri(cleanUri);
 	//std::cout << "Normalized: " << cleanUri << std::endl;
 
-	//* Si normalizeUri devuelve "" pero la uri original no lo era, es un intento de escape (malicoso)
-	if (cleanUri.empty() && !uri.empty()) {
-		//std::cout << "Entrando en bloque 403" << std::endl;
+	// 2. If normalization returns empty but the original URI was not, it's a traversal attempt
+	if (cleanUri.empty() && !req.getUri().empty()) {
 		result.staticResponse = handleError(403);
 		return (result);
 	}
-	uri = cleanUri;
+	//uri = cleanUri;
 	//* hasta aquí
+	// NOW, on the already clean URI, strip the location prefix
+	std::string uri = cleanUri;
+	if (loc.path != "/" && uri.compare(0, loc.path.length(), loc.path) == 0) {
+		uri = uri.substr(loc.path.length());
+	}
 
 	if (!uri.empty() && uri[0] != '/')
 		path += "/";
@@ -149,21 +153,8 @@ bool ResponseBuilder::isCgiExtension(const std::string& ext, std::string& outCgi
     }
 
     for (size_t i = 0; i < total; ++i) {
-        /*
-		if (loc.cgiExtension[i] == ext) {
+        if (loc.cgiExtension[i] == ext) {
             outCgiBinary = loc.cgiPath[i];
-			std::cout << "outCgiBinary: " << outCgiBinary << " | loc.cgiPath[i]: " << loc.cgiPath[i] << std::endl;
-            return true;
-        }
-		*/
-		//Para solucionar el problema de que path es "" entonces no lo detecta como vacio
-		if (loc.cgiExtension[i] == ext) {
-            // Limpiamos las comillas literales si existen
-            if (loc.cgiPath[i] == "\"\"") {
-                outCgiBinary = ""; // String vacío real
-            } else {
-                outCgiBinary = loc.cgiPath[i];
-            }
             return true;
         }
     }
