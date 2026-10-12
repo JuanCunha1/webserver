@@ -41,7 +41,7 @@ Client::~Client()
 	if (_fd != -1)
 		close(_fd);
 
-	//! Creo que debo hacerlo
+	//! I think I have to do it
 	delete _cgiHandler;
 	_cgiHandler = NULL;
 }

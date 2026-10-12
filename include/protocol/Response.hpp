@@ -28,12 +28,12 @@ class Response {
 		const std::string &getStatusMessage() const { return (this->_statusMessage); }
 		const std::string &getBody() const { return (this->_body); }
 		
-		//* Lo transforma en una string para poder pasarselo al socket
-		//! al momento de llamar a Response::serialize() o Response::toString(),
-		//! lanzas una excepción o devuelves un 500 Internal Server Error si el código sigue siendo 0.
+		//* Transforms it into a string so it can be passed to the socket
+		//! when calling Response::serialize() or Response::toString(),
+		//! throw an exception or return a 500 Internal Server Error if the code is still 0.
 		//std::string serialize() const;
-		//* El body lo pasamos a send con getBody para evitar hacer una copia
-		//* Es un bloque contiguo en memoria así que podemos passar el puntero al bloque
+		//* We pass the body to send with getBody to avoid making a copy
+		//* It is a contiguous block in memory so we can pass the pointer to the block
 		std::string getHeadersAsString() const;
 
 
@@ -41,7 +41,7 @@ class Response {
 		void printHeadersRes() const {
 			std::map<std::string, std::string>::const_iterator it = this->_headers.begin();
 			while (it != this->_headers.end()) {
-				//printar
+				//print
 				std::cout << it->first << ": " << it->second << std::endl;
 				it++;
 			}

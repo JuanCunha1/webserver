@@ -41,7 +41,7 @@ class Request {
 			}
 			return (NULL);
 		}
-		//! Mas que nada para ver como implementar de manera adequada las excepciones
+		//! Mostly to see how to properly implement exceptions
 		/*
 		const std::string& getHeader(const std::string& key) const {
 		std::map<std::string, std::string>::const_iterator it = this->headers.find(key);
@@ -60,7 +60,7 @@ class Request {
 		void printHeaders() const {
 			std::map<std::string, std::string>::const_iterator it = this->headers.begin();
 			while (it != this->headers.end()) {
-				//printar
+				//print
 				std::cout << it->first << ": " << it->second << std::endl;
 				it++;
 			}

@@ -5,7 +5,7 @@
 #include <cerrno>
 #include <string>
 
-//* Función auxiliar para obtener la ruta del directorio que contiene al archivo
+//* Helper function to get the path of the directory containing the file
 static std::string getParentDirectory(const std::string &path) {
 	size_t lastSlash = path.find_last_of('/');
 	if (lastSlash == std::string::npos) {
@@ -50,7 +50,7 @@ HandlerResult ResponseBuilder::handleDelete() {
     res.setStatusCode(204);
     res.setStatusMessage("No Content");
     res.setHeader("Connection", "keep-alive");
-    //res.setHeader("Content-Length", "0"); para cumplir el RFC 7230
+    //res.setHeader("Content-Length", "0"); to comply with RFC 7230
     res.setBody("");
 
     result.staticResponse = res;

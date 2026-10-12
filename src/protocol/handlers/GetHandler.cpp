@@ -10,7 +10,7 @@
 #include <unistd.h>
 #include <dirent.h>
 #include <cerrno>
-#include <cstring> // Para strerror
+#include <cstring> // For strerror
 
 std::string readFile(const std::string &path) {
 	std::ifstream file(path.c_str(), std::ios::in | std::ios::binary);
@@ -39,8 +39,8 @@ std::string readFile(const std::string &path) {
 }
 
 
-//! Ambas funciones son para reducir lines en los handle
-//! Implementar en el resto del codigo
+//! Both functions are to reduce lines in the handlers
+//! Implement in the rest of the code
 Response ResponseBuilder::serveStaticFile(const std::string &filePath) {
 	Response res;
 	std::string fileContent = readFile(filePath);
@@ -49,7 +49,7 @@ Response ResponseBuilder::serveStaticFile(const std::string &filePath) {
 	res.setStatusMessage("OK");
 	res.setHeader("Content-Type", MimeTypes::getType(filePath));
 	res.setHeader("Content-Length", Utils::toString(fileContent.size()));
-	//! mira como hacer dependiendo si cliente sigue(keep-alive) o hace un close
+	//! look at how to do it depending on whether the client stays (keep-alive) or closes
 	if (shouldCloseConnection(200)) {
 		res.setHeader("Connection", "close");
 	} else {
@@ -74,23 +74,23 @@ std::string generateAutoindex(const std::string& directoryPath, const std::strin
          << "<body style=\"font-family: monospace;\">\r\n"
          << "<h1>Index of " << requestUri << "</h1>\r\n<hr>\r\n<pre>\r\n";
 
-    //* Iteramos sobre todos los elementos de la carpeta
+    //* Iterate over all the elements of the folder
     while ((ent = readdir(dir)) != NULL) {
         std::string filename = ent->d_name;
 
-        // Omitir el directorio actual "." para que quede más limpio, 
+        // Skip the current directory "." to keep it cleaner, 
         if (filename == ".") {
             continue;
         }
 
-        // Asegurar que la URI base termina en '/' para concatenar bien el link
+        // Ensure the base URI ends in '/' to concatenate the link properly
         std::string href = requestUri;
         if (!href.empty() && href[href.length() - 1] != '/') {
             href += "/";
         }
         href += filename;
 
-        // Añadir un '/' visual si el elemento es un directorio
+        // Add a visual '/' if the element is a directory
         std::string displayName = filename;
         if (ent->d_type == DT_DIR) {
             displayName += "/";
@@ -131,7 +131,7 @@ HandlerResult ResponseBuilder::handleGet() {
             result.staticResponse = serveStaticFile(indexPath);
             return (result);
         }
-		//! Mirar que es esto
+		//! Look into what this is
         if (loc.autoindex) {
             std::string autoindexHtml = generateAutoindex(path, req.getUri());
         
@@ -159,7 +159,7 @@ HandlerResult ResponseBuilder::handleGet() {
     }
 
     if (S_ISREG(statbuf.st_mode)) {
-        // Extraer la extensión del archivo
+        // Extract the file extension
         std::string ext = "";
         std::string::size_type dotPos = path.rfind('.');
         if (dotPos != std::string::npos) {
@@ -168,7 +168,7 @@ HandlerResult ResponseBuilder::handleGet() {
 
         std::string cgiBinary;
         
-        // Verificamos si la extensión pertenece a un CGI según el .conf
+        // Check whether the extension belongs to a CGI according to the .conf
         if (isCgiExtension(ext, cgiBinary)) {
             std::cout << "DEBUG CGI - Intentando ejecutar: [" << path << "]" << std::endl;
             if (access(path.c_str(), F_OK) == -1) {
@@ -181,8 +181,8 @@ HandlerResult ResponseBuilder::handleGet() {
             std::cout << "Path del archivo: [" << path << "]" << std::endl;
             std::cout << "cgiBinary: [" << cgiBinary << "] (Length: " << cgiBinary.length() << ")" << std::endl;
             if (cgiBinary.empty() || cgiBinary == "\"\"" || cgiBinary == "''") {
-                // Es un CGI COMPILADO (ej: ubuntu_cgi_tester)
-                // Para ejecutarlo directamente, NECESITA permisos de ejecución (X_OK)
+                // It is a COMPILED CGI (e.g. ubuntu_cgi_tester)
+                // To run it directly, it NEEDS execute permission (X_OK)
                 std::cout << "-> Evaluando como CGI COMPILADO (sin interprete)" << std::endl;
                 if (access(path.c_str(), X_OK) == -1) {
                     std::cerr << "Fallo access(X_OK) compilado. Error: " << strerror(errno) << std::endl;
@@ -192,14 +192,14 @@ HandlerResult ResponseBuilder::handleGet() {
                 std::cout << "-> Permisos X_OK correctos para el binario." << std::endl;
             } else {
                 std::cout << "-> Evaluando como SCRIPT INTERPRETADO (Python/PHP)" << std::endl;
-                // Es un SCRIPT INTERPRETADO (ej: Python)
-                // El script necesita permiso de lectura (R_OK) para que el intérprete lo lea
+                // It is an INTERPRETED SCRIPT (e.g. Python)
+                // The script needs read permission (R_OK) for the interpreter to read it
                 if (access(path.c_str(), R_OK) == -1) {
                     std::cerr << "Fallo access(R_OK) al script. Error: " << strerror(errno) << std::endl;
                     result.staticResponse = handleError(403);
                     return (result);
                 }
-                // Y el intérprete (Python) necesita permiso de ejecución (X_OK)
+                // And the interpreter (Python) needs execute permission (X_OK)
                 if (access(cgiBinary.c_str(), X_OK) == -1) {
                     std::cerr << "Fallo access(X_OK) al interprete [" << cgiBinary << "]. Error: " << strerror(errno) << std::endl;
                     result.staticResponse = handleError(403);
@@ -208,7 +208,7 @@ HandlerResult ResponseBuilder::handleGet() {
             }
             std::cout << "--- FIN DEBUG CGI (Todo OK, pasando a executeChild) ---\n" << std::endl;
 
-            // --- EJECUCIÓN DEL CGI ---
+            // --- CGI EXECUTION ---
             result.isCgi = true;
             result.cgiHandler = new CgiHandler();
             
@@ -220,7 +220,7 @@ HandlerResult ResponseBuilder::handleGet() {
             return (result); 
         }
 
-        // --- MANEJO DE ARCHIVOS ESTÁTICOS ---
+        // --- STATIC FILE HANDLING ---
         if (access(path.c_str(), R_OK) == -1) {
             result.staticResponse = handleError(403);
             return (result);
@@ -240,7 +240,7 @@ Response ResponseBuilder::handleGet(const Request &req, const std::string &path)
 	struct stat statbuf;
 	if (stat(path.c_str(), &statbuf) == -1) {
 		if (errno == ENOENT) {
-			// igual mirar tema excepciones
+			// maybe look into exceptions
 			return (buildErrorResponse(404, "Not Found"));
 		}
 		if (errno == EACCES) {
@@ -250,18 +250,18 @@ Response ResponseBuilder::handleGet(const Request &req, const std::string &path)
 	}
 
 	if (S_ISDIR(statbuf.st_mode)) {
-		//! Hacer comprobación de si existe index.html o si tengo activo el autoindex
-		std::string indexPath = path + "/index.html"; // Asegúrate de formatear bien las barras
+		//! Check whether index.html exists or whether autoindex is enabled
+		std::string indexPath = path + "/index.html"; // Make sure to format the slashes properly
 		struct stat indexStat;
 		if (stat(indexPath.c_str(), &indexStat) == 0 && S_ISREG(indexStat.st_mode)) {
 			return (serveStaticFile(req, indexPath));
 		}
-		// Si autoindex está apagado o no hay index
+		// If autoindex is off or there is no index
 		return (buildErrorResponse(403, "Forbidden"));
 	}
 
 	if (S_ISREG(statbuf.st_mode)) {
-		// Parte CGI (a la espera de Ainhoa)
+		// CGI part (waiting for Ainhoa)
 		if (isCgiRequest(path)) {
             if (access(path.c_str(), R_OK) == -1) {
                 return (buildErrorResponse(403, "Forbidden"));
@@ -273,7 +273,7 @@ Response ResponseBuilder::handleGet(const Request &req, const std::string &path)
 		}
 		return (serveStaticFile(req, path));
 	}
-	//! Otros casos no soportados
+	//! Other unsupported cases
 	return (buildErrorResponse(403, "Forbidden"));
 }
 	*/

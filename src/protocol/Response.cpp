@@ -4,7 +4,7 @@
 #include "Utils.hpp"
 
 Response::Response() :
-	//! No es lo correcto hardcodear la version
+	//! Hardcoding the version is not the right thing
 	_version("HTTP/1.1"),
 	_statusCode(0),
 	_statusMessage(""),
@@ -36,7 +36,7 @@ void Response::setBody(const std::string &body) {
 	this->_body = body;
 }
 
-// Función auxiliar en C++98 para enteros a string
+// Helper function in C++98 for int to string
 static std::string intToString(int n) {
     std::ostringstream ss;
     ss << n;

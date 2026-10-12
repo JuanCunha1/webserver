@@ -4,7 +4,7 @@ import os
 
 print("Content-Type: text/html\r\n\r\n", end="")
 
-# Simulamos un proceso lento (ej. buscar en BBDD)
+# Simulate a slow process (e.g. searching a DB)
 time.sleep(3)
 
 print("<!DOCTYPE html><html><body>")

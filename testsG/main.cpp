@@ -4,7 +4,7 @@
 
 int main() {
 	std::string rawRequest = "GET /index.html HTTP/1.1\r\nContent-Type: Text/Plain\r\nContent-Length: 5\r\nHost: localhost:8080\r\n\r\nasdasdasasdasddasdasdasdasda\r\n";
-	//! Estaria bien recibir de un std::vector<char> para memoria dinamica automatica
+	//! It would be nice to receive a std::vector<char> for automatic dynamic memory
 
 
 	size_t maxBodySize = 10000;

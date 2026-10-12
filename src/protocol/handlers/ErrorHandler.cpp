@@ -42,10 +42,10 @@ std::string ResponseBuilder::getDefaultStatusMessage(int statusCode) {
         case 410: return ("Gone");
         case 411: return ("Length Required");
         case 412: return ("Precondition Failed");
-        case 413: return ("Payload Too Large"); // Antiguamente "Request Entity Too Large" en RFC 2616
-        case 414: return ("URI Too Long");      // Antiguamente "Request-URI Too Long" en RFC 2616
+        case 413: return ("Payload Too Large"); // Formerly "Request Entity Too Large" en RFC 2616
+        case 414: return ("URI Too Long");      // Formerly "Request-URI Too Long" en RFC 2616
         case 415: return ("Unsupported Media Type");
-        case 416: return ("Range Not Satisfiable"); // Antiguamente "Requested Range Not Satisfiable"
+        case 416: return ("Range Not Satisfiable"); // Formerly "Requested Range Not Satisfiable"
         case 417: return ("Expectation Failed");
         case 418: return ("I'm a teapot");      // RFC 2324 / RFC 7168
         case 421: return ("Misdirected Request");
@@ -103,7 +103,7 @@ Response ResponseBuilder::buildErrorResponse(int code, const std::string &msg) {
     return res;
 }
 
-//* Busca si existe página de error personalizada en struct ErrorPages
+//* Looks for a custom error page in struct ErrorPages
 std::string ResponseBuilder::getCustomErrorPage(int errorCode) {
 	//std::cout << "Error code: " << errorCode << std::endl;
 	//std::cout << "Server error codes: " << server.errorPages[0].errorCodes[0] << std::endl;

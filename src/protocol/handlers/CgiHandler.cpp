@@ -29,13 +29,13 @@ void CgiHandler::cleanup() {
         close(_pipeOut);
         _pipeOut = -1;
     }
-	// Si el proceso hijo fue creado y aún tenemos su PID registrado
+	// If the child process was created and we still have its PID registered
 	if (_pid > 0) {
-        // Le enviamos SIGKILL por si sigue vivo (seguridad extra)
+        // Send it SIGKILL in case it is still alive (extra safety)
         kill(_pid, SIGKILL);
         
-        // waitpid recoge el estado de salida. Esto es OBLIGATORIO en Unix 
-        // para que el SO libere el PID y no se quede como proceso zombi.
+        // waitpid collects the exit status. This is MANDATORY on Unix 
+        // so the OS frees the PID and it does not remain as a zombie process.
         waitpid(_pid, NULL, 0); 
         _pid = -1;
     }
@@ -45,14 +45,14 @@ void CgiHandler::killCgi() {
     if (_pid > 0) {
         kill(_pid, SIGKILL);
         waitpid(_pid, NULL, 0);
-        _pid = -1; // Marcamos como recogido
+        _pid = -1; // Mark as collected
     }
     
-    // Cerramos pipes para que el event loop no intente leer más
+    // Close pipes so the event loop does not try to read any more
     if (_pipeIn != -1) { close(_pipeIn); _pipeIn = -1; }
     if (_pipeOut != -1) { close(_pipeOut); _pipeOut = -1; }
     
-    // Marcamos el estado para que buildCgiResponse sepa qué hacer
+    // Set the state so buildCgiResponse knows what to do
     _isReadDone = true;
     _isWriteDone = true;
     _hasError = true;
@@ -112,17 +112,17 @@ void CgiHandler::executeChild(int pIn[2], int pOut[2], const Request &req,
     close(pOut[1]);
 
     //* Go to CWD
-    // 1. Separar ruta y nombre del archivo
+    // 1. Split path and file name
     std::string scriptDir = "."; 
     std::string scriptName = scriptPath;
     size_t lastSlash = scriptPath.find_last_of('/');
     
     if (lastSlash != std::string::npos) {
         scriptDir = scriptPath.substr(0, lastSlash);
-        scriptName = scriptPath.substr(lastSlash + 1); // Ej: "reldata.py"
+        scriptName = scriptPath.substr(lastSlash + 1); // E.g.: "reldata.py"
     }
 
-    // 2. Movernos al directorio del CGI
+    // 2. Move to the CGI directory
     if (chdir(scriptDir.c_str()) == -1) {
         _exit(EXIT_FAILURE);
     }
@@ -152,7 +152,7 @@ void CgiHandler::executeChild(int pIn[2], int pOut[2], const Request &req,
     
     freeCharArray(argv);
     freeCharArray(envp);
-    _exit(127); // Es preferible _exit() dentro de un fork() que std::exit()
+    _exit(127); // _exit() is preferable inside a fork() over std::exit()
 }
 
 void CgiHandler::setupParent(int pIn[2], int pOut[2], const Request &req) {
@@ -205,7 +205,7 @@ bool CgiHandler::initCgi(const Request &req, const std::string &scriptPath, cons
     return (true);
 }
 
-//* Operaciones de E/S No Bloqueantes
+//* Non-blocking I/O operations
 void CgiHandler::writeToCgi() {
     if (_pipeIn == -1 || _inputBuffer.empty()) {
         return;
@@ -220,7 +220,7 @@ void CgiHandler::writeToCgi() {
             _isWriteDone = true;
         }
     } else {
-		// Si no hay datos aún, salimos sin marcar error
+		// If there is no data yet, return without flagging an error
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
             return; 
         }
@@ -246,10 +246,10 @@ void CgiHandler::readFromCgi() {
         _pipeOut = -1;
         _isReadDone = true;
 
-		//* recogemos hijo para evitar zombis
+		//* reap the child to avoid zombies
         /*
 		if (_pid > 0) {
-            waitpid(_pid, NULL, WNOHANG); // WNOHANG no bloquea el event loop
+            waitpid(_pid, NULL, WNOHANG); // WNOHANG does not block the event loop
             _pid = -1;
         }
         */
@@ -257,16 +257,16 @@ void CgiHandler::readFromCgi() {
             int status;
             pid_t wp = waitpid(_pid, &status, WNOHANG);
             
-            // Si wp > 0, el hijo ha terminado y lo hemos recogido.
-            // Si wp == -1 y errno == ECHILD, ya no existe.
+            // If wp > 0, the child has finished and we have reaped it.
+            // If wp == -1 and errno == ECHILD, it no longer exists.
             if (wp > 0 || (wp == -1 && errno == ECHILD)) {
                 _pid = -1;
             }
-            // Si wp == 0, el hijo sigue vivo. NO cambiamos _pid a -1. 
-            // Así el destructor (~CgiHandler -> cleanup) podrá rematarlo.
+            // If wp == 0, the child is still alive. We do NOT change _pid to -1. 
+            // That way the destructor (~CgiHandler -> cleanup) can finish it off.
         }
     } else {
-		// Si no hay datos aún, salimos sin marcar error
+		// If there is no data yet, return without flagging an error
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
             return; 
         }
@@ -277,7 +277,7 @@ void CgiHandler::readFromCgi() {
     }
 }
 
-//* Construcción de la Respuesta HTTP (Refactorizada)
+//* HTTP Response construction (Refactored)
 bool CgiHandler::splitOutput(std::string &headersPart, std::string &bodyPart) {
     size_t headerEnd = _outputBuffer.find("\r\n\r\n");
     size_t delimiterLen = 4;
@@ -358,7 +358,7 @@ Response CgiHandler::buildCgiResponse() {
     res.setBody(bodyPart);
     res.setHeader("Content-Length", Utils::toString(bodyPart.size()));
 
-	//std::cout << "[HTTP CGI] Respuesta generada con " << bodyPart.size() << " bytes de body." << std::endl;
+	//std::cout << "[HTTP CGI] Response generated with " << bodyPart.size() << " bytes of body." << std::endl;
     return (res);
 }
 
@@ -377,13 +377,13 @@ char** CgiHandler::buildArgv(const std::string &scriptPath, const std::string &c
 }
 */
 
-//* Utilidades de Argumentos y Variables de Entorno (C++98 Puro)
+//* Argument and Environment Variable utilities (Pure C++98)
 char** CgiHandler::buildArgv(const std::string &scriptName, const std::string &cgiBinary) {
     char **argv = new char*[3];
 
     if (cgiBinary.empty() || cgiBinary == "\"\"" || cgiBinary == "''") {
-        // Para CGIs compilados (ej: ubuntu_cgi_tester)
-        std::string execPath = "./" + scriptName; // Construye "./ubuntu_cgi_tester"
+        // For compiled CGIs (e.g. ubuntu_cgi_tester)
+        std::string execPath = "./" + scriptName; // Builds "./ubuntu_cgi_tester"
         
         argv[0] = new char[execPath.size() + 1];
         std::strcpy(argv[0], execPath.c_str());
@@ -391,7 +391,7 @@ char** CgiHandler::buildArgv(const std::string &scriptName, const std::string &c
         argv[1] = new char[scriptName.size() + 1];
         std::strcpy(argv[1], scriptName.c_str());
     } else {
-        // Para scripts interpretados (Python/PHP)
+        // For interpreted scripts (Python/PHP)
         argv[0] = new char[cgiBinary.size() + 1];
         std::strcpy(argv[0], cgiBinary.c_str());
 
