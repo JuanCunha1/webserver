@@ -249,56 +249,83 @@ static bool parseAndSaveMultipart(const std::string &body, const std::string &bo
 
 //* (cuando es text/plain)Guarda el body entero en el fichero indicado por la URL
 Response ResponseBuilder::handlePostDirect() {
-	struct stat statbuf;
-	bool fileExisted = (stat(path.c_str(), &statbuf) == 0);
+    // 1. --- ARREGLO UPLOAD_STORE ---
+    std::string targetFilePath = path; // Por defecto: ruta normal (root + URI)
 
-	if (fileExisted && S_ISDIR(statbuf.st_mode)) {
-		return (handleError(403));
-	}
-	if (fileExisted && access(path.c_str(), W_OK) == -1) {
-		return (handleError(403));
-	}
-	std::ofstream outFile(path.c_str(), std::ios::out | std::ios::binary | std::ios::trunc);
-	if (!outFile.is_open()) {
-		return (handleError(500));
-	}
-	const std::string &body = req.getBody();
-	if (!body.empty()) {
-		outFile.write(body.data(), body.size());
-	}
-	outFile.close();
+    if (!loc.uploadStore.empty()) {
+        // Extraer solo el nombre del archivo de la URI original (ej: "/subidas/foto.png" -> "foto.png")
+        std::string uri = req.getUri();
+        std::string filename = "";
+        std::string::size_type pos = uri.find_last_of('/');
+        if (pos != std::string::npos) {
+            filename = uri.substr(pos + 1);
+        } else {
+            filename = uri;
+        }
 
-	Response res;
-	if (!fileExisted) {
-		res.setStatusCode(201);
-		res.setStatusMessage("Created");
-		res.setHeader("Location", req.getUri());
+        // Construir la nueva ruta usando el directorio de subida configurado
+        targetFilePath = loc.uploadStore;
+        if (targetFilePath[targetFilePath.size() - 1] != '/') {
+            targetFilePath += "/";
+        }
+        targetFilePath += filename;
+    }
+    // -------------------------------
 
-		std::string responseBody = "<html><body><h1>201 Created</h1><p>Resource created successfully.</p></body></html>\n";
-		res.setHeader("Content-Type", "text/html");
-		res.setHeader("Content-Length", Utils::toString(responseBody.size()));
-		if (shouldCloseConnection(200)) {
-			res.setHeader("Connection", "close");
-		} else {
-			res.setHeader("Connection", "keep-alive");
-		}
-		res.setBody(responseBody);
-	} else {
-		res.setStatusCode(200);
-		res.setStatusMessage("OK");
+    struct stat statbuf;
+    // 2. ¡ATENCIÓN! Cambiamos 'path.c_str()' por 'targetFilePath.c_str()' en toda la función
+    bool fileExisted = (stat(targetFilePath.c_str(), &statbuf) == 0);
 
-		std::string responseBody = "<html><body><h1>200 OK</h1><p>Resource updated successfully.</p></body></html>\n";
-		res.setHeader("Content-Type", "text/html");
-		res.setHeader("Content-Length", Utils::toString(responseBody.size()));
-		if (shouldCloseConnection(200)) {
-			res.setHeader("Connection", "close");
-		} else {
-			res.setHeader("Connection", "keep-alive");
-		}
-		res.setBody(responseBody);
-	}
+    if (fileExisted && S_ISDIR(statbuf.st_mode)) {
+        return (handleError(403));
+    }
+    if (fileExisted && access(targetFilePath.c_str(), W_OK) == -1) {
+        return (handleError(403));
+    }
+    
+    // Abrimos el archivo en targetFilePath
+    std::ofstream outFile(targetFilePath.c_str(), std::ios::out | std::ios::binary | std::ios::trunc);
+    if (!outFile.is_open()) {
+        return (handleError(500));
+    }
+    const std::string &body = req.getBody();
+    if (!body.empty()) {
+        outFile.write(body.data(), body.size());
+    }
+    outFile.close();
 
-	return (res);
+    Response res;
+    if (!fileExisted) {
+        res.setStatusCode(201);
+        res.setStatusMessage("Created");
+        // El Header 'Location' sigue devolviendo la URI original, lo cual es correcto de cara al cliente
+        res.setHeader("Location", req.getUri());
+
+        std::string responseBody = "<html><body><h1>201 Created</h1><p>Resource created successfully.</p></body></html>\n";
+        res.setHeader("Content-Type", "text/html");
+        res.setHeader("Content-Length", Utils::toString(responseBody.size()));
+        if (shouldCloseConnection(200)) {
+            res.setHeader("Connection", "close");
+        } else {
+            res.setHeader("Connection", "keep-alive");
+        }
+        res.setBody(responseBody);
+    } else {
+        res.setStatusCode(200);
+        res.setStatusMessage("OK");
+
+        std::string responseBody = "<html><body><h1>200 OK</h1><p>Resource updated successfully.</p></body></html>\n";
+        res.setHeader("Content-Type", "text/html");
+        res.setHeader("Content-Length", Utils::toString(responseBody.size()));
+        if (shouldCloseConnection(200)) {
+            res.setHeader("Connection", "close");
+        } else {
+            res.setHeader("Connection", "keep-alive");
+        }
+        res.setBody(responseBody);
+    }
+
+    return (res);
 }
 
 HandlerResult ResponseBuilder::handlePost() {
@@ -354,7 +381,21 @@ HandlerResult ResponseBuilder::handlePost() {
         std::vector<std::string> savedFilenames;
         std::map<std::string, std::string> formFields;
 
-        if (!parseAndSaveMultipart(req.getBody(), boundary, path, savedFilenames, formFields)) {
+		// --- ARREGLO UPLOAD_STORE AQUÍ ---
+        // 1. Decidimos el directorio de destino
+        std::string targetDir = path; // Por defecto: root + URI
+        
+        if (!loc.uploadStore.empty()) {
+            targetDir = loc.uploadStore; // Si hay upload_store, usamos ese
+            
+            // Opcional: asegurarte de que termine en '/' para que al concatenar el nombre no falle
+            if (targetDir[targetDir.size() - 1] != '/') {
+                targetDir += "/";
+            }
+        }
+        // ---------------------------------
+
+        if (!parseAndSaveMultipart(req.getBody(), boundary, targetDir, savedFilenames, formFields)) {
             result.staticResponse = handleError(400);
             return (result);
         }
