@@ -1,7 +1,5 @@
 _This project has been created as part of the 42 curriculum by gfuster, aiguerre_
 
-
-
 # 💬 **Description**
 
 The goal of the project is to write an HTTP server in C++98. The server must be fully compatible with a web browser, handling HTTP/1.1 requests and serving static websites. The project relies heavily on multiplexing to handle multiple clients simultaneously without crashing or hanging.
@@ -122,7 +120,7 @@ curl http://localhost:8080/asdasd
 **Limit the size of the client request body (use: curl -X POST -H "Content-Type: plain/text" --data "BODY IS HERE write something shorter or longer than body limit").**
 config2.conf
 curl -X POST -H "Content-Type: plain/text" --data "BODY" http://localhost:8080/prueba.txt
--v (antes del -X para ver cuerpo)
+-v (before -X to see body)
 
 **Set up routes on a server to different directories.**
 config2.conf
@@ -142,22 +140,22 @@ curl -v -X DELETE http://127.0.0.1:8080/camisetas/camiseta_roja.html
 **CHECK CGI**
 curl “http://127.0.0.1:8080/buscar_vuelo.py?origen=BCN”
 
-**Script para probar Infinite (infinite.py):**
+**Script to test Infinite (infinite.py):**
 curl http://127.0.0.1:8080/infinite.py
 
-**Script para probar Lento (lento.py):**
+**Script to test Lento (lento.py):**
 curl http://127.0.0.1:8080/lento.py
 
-**Script para probar POST (post_test.py):**
+**Script to test POST (post_test.py):**
 curl -v -X POST -H "Content-Type: application/x-www-form-urlencoded" --data "usuario=guillem&proyecto=webserv" http://127.0.0.1:8080/post_test.py
 
-**Script para probar Rutas Relativas (relative_path.py):**
+**Script to test Relative Paths (relative_path.py):**
 curl -v http://127.0.0.1:8080/relative_path.py
 
-**Script con Error de Ejecución (error_crash.py):**
+**Script with Execution Error (error_crash.py):**
 curl -v http://127.0.0.1:8080/error_crash.py
 
-**PRUEBAS PARA CREAR WEB**
+**TEST TO CREAT WEBPAGE**
 mkdir -p www/prueba
 echo "<h1>Prueba superada</h1>" > www/prueba/index.html
 
@@ -170,19 +168,21 @@ echo "<h1>Prueba superada</h1>" > www/prueba/index.html
 For every test, you should receive the appropriate status code.
 Upload some files to the server and retrieve them.
 
-**Pruebas GET:**
-Con nc manual…
+**Test GET:**
+With nc:
+nc -C interface port
+Example: nc -C localhost 8080
 
-**Pruebas POST i DELETE:**
+**Tests POST and DELETE:**
 echo "Contenido de prueba para el servidor" > test.txt
 curl -v -X POST --data-binary "@test.txt" -H "Content-Type: text/plain" http://127.0.0.1:8080/uploads/test.txt
 curl -v http://127.0.0.1:8080/uploads/test.txt
 curl -v -X DELETE http://127.0.0.1:8080/uploads/test.txt
 curl -v http://127.0.0.1:8080/uploads/test.txt
 
-**Subir imagenes:**
+**Upload image:**
 curl -v -X POST --data-binary "@www/tests/imagen.jpg" -H "Content-Type: image/jpeg" http://127.0.0.1:8080/uploads/image.jpg
-Descargar en local:
+Download in local:
 curl -v http://127.0.0.1:8080/uploads/image.jpg -o descarga.jpg
 
 **SIEGE & STRESS TEST**
