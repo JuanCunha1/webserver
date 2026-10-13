@@ -1,6 +1,8 @@
 #include "protocol/CgiHandler.hpp"
 #include "protocol/Response.hpp"
 #include "protocol/Request.hpp"
+#include "protocol/HttpException.hpp"
+
 #include "Utils.hpp"
 
 #include <iostream>
@@ -146,9 +148,7 @@ void CgiHandler::executeChild(int pIn[2], int pOut[2], const Request &req,
     //char **argv = buildArgv(scriptPath, cgiBinary);
     //char **envp = buildEnv(req, scriptPath);
 
-    std::cout << "[HIJO] Intentando execve con: " << argv[0] << std::endl;
     execve(argv[0], argv, envp);
-    std::cerr << "[HIJO] ¡Fallo critico en execve! Error: " << strerror(errno) << std::endl;
     
     freeCharArray(argv);
     freeCharArray(envp);
@@ -235,7 +235,6 @@ void CgiHandler::readFromCgi() {
     if (_pipeOut == -1) {
         return;
     }
-
     char buffer[4096];
     ssize_t bytesRead = read(_pipeOut, buffer, sizeof(buffer));
 
@@ -256,11 +255,16 @@ void CgiHandler::readFromCgi() {
         if (_pid > 0) {
             int status;
             pid_t wp = waitpid(_pid, &status, WNOHANG);
+
+            if ((WIFEXITED(status) && WEXITSTATUS(status) != 0) || WIFSIGNALED(status)) {
+                _hasError = true;
+            }
             
             // If wp > 0, the child has finished and we have reaped it.
             // If wp == -1 and errno == ECHILD, it no longer exists.
             if (wp > 0 || (wp == -1 && errno == ECHILD)) {
                 _pid = -1;
+                _hasError = true;
             }
             // If wp == 0, the child is still alive. We do NOT change _pid to -1. 
             // That way the destructor (~CgiHandler -> cleanup) can finish it off.
@@ -268,7 +272,7 @@ void CgiHandler::readFromCgi() {
     } else {
 		// If there is no data yet, return without flagging an error
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
-            return; 
+            return;
         }
         close(_pipeOut);
         _pipeOut = -1;
@@ -334,8 +338,12 @@ Response CgiHandler::buildCgiResponse() {
     Response res;
 
     if (_hasError) {
+        std::string errorBody = "<html><body><h1>500 Internal Server Error</h1><p>CGI Execution Failed.</p></body></html>";
         res.setStatusCode(500);
         res.setStatusMessage("Internal Server Error");
+        res.setHeader("Content-Type", "text/html");
+        res.setHeader("Content-Length", Utils::toString(errorBody.size()));
+        res.setBody(errorBody);
         return (res);
     }
 

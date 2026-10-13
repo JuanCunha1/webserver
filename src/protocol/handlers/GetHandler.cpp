@@ -170,26 +170,19 @@ HandlerResult ResponseBuilder::handleGet() {
         
         // Check whether the extension belongs to a CGI according to the .conf
         if (isCgiExtension(ext, cgiBinary)) {
-            std::cout << "DEBUG CGI - Intentando ejecutar: [" << path << "]" << std::endl;
             if (access(path.c_str(), F_OK) == -1) {
                 result.staticResponse = handleError(404);
                 return (result);
             }
 
-            //!DEBUGING
-            std::cout << "\n--- DEBUG CGI ---" << std::endl;
-            std::cout << "Path del archivo: [" << path << "]" << std::endl;
-            std::cout << "cgiBinary: [" << cgiBinary << "] (Length: " << cgiBinary.length() << ")" << std::endl;
             if (cgiBinary.empty() || cgiBinary == "\"\"" || cgiBinary == "''") {
                 // It is a COMPILED CGI (e.g. ubuntu_cgi_tester)
                 // To run it directly, it NEEDS execute permission (X_OK)
-                std::cout << "-> Evaluando como CGI COMPILADO (sin interprete)" << std::endl;
                 if (access(path.c_str(), X_OK) == -1) {
                     std::cerr << "Fallo access(X_OK) compilado. Error: " << strerror(errno) << std::endl;
                     result.staticResponse = handleError(403);
                     return (result);
                 }
-                std::cout << "-> Permisos X_OK correctos para el binario." << std::endl;
             } else {
                 std::cout << "-> Evaluando como SCRIPT INTERPRETADO (Python/PHP)" << std::endl;
                 // It is an INTERPRETED SCRIPT (e.g. Python)
@@ -206,7 +199,6 @@ HandlerResult ResponseBuilder::handleGet() {
                     return (result);
                 }
             }
-            std::cout << "--- FIN DEBUG CGI (Todo OK, pasando a executeChild) ---\n" << std::endl;
 
             // --- CGI EXECUTION ---
             result.isCgi = true;
