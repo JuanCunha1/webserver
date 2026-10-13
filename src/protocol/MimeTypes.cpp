@@ -10,7 +10,6 @@ void MimeTypes::init() {
 		_types[".png"]  = "image/png";
 		_types[".jpg"]  = "image/jpeg";
 		_types[".txt"]  = "text/plain";
-		//* Could add more formats
 	}
 }
 
@@ -27,7 +26,7 @@ std::string MimeTypes::getType(const std::string &path) {
 	init();
 	std::string ext = getExtension(path);
 
-	// A: Add to convert the extension to lowercase to handle .JPG, .PNG, etc.
+	//* To convert the extension to lowercase to handle .JPG, .PNG, etc.
 	for (size_t i = 0; i < ext.length(); ++i) {
 		ext[i] = std::tolower(static_cast<unsigned char>(ext[i]));
 	}

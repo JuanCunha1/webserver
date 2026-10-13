@@ -41,29 +41,7 @@ class Request {
 			}
 			return (NULL);
 		}
-		//! Mostly to see how to properly implement exceptions
-		/*
-		const std::string& getHeader(const std::string& key) const {
-		std::map<std::string, std::string>::const_iterator it = this->headers.find(key);
-		if (it != this->headers.end()) {
-			return it->second;
-		}
-		throw std::out_of_range("Header no encontrado: " + key);
-	}
-		*/
-		
 
 		bool getIsComplete() const { return this->isComplete; }
-        int getErrorCode() const { return this->errorCode; }
-
-		//! TESTING
-		void printHeaders() const {
-			std::map<std::string, std::string>::const_iterator it = this->headers.begin();
-			while (it != this->headers.end()) {
-				//print
-				std::cout << it->first << ": " << it->second << std::endl;
-				it++;
-			}
-		}
-
+		int getErrorCode() const { return this->errorCode; }
 };

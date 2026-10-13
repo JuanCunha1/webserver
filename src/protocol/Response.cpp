@@ -4,7 +4,6 @@
 #include "Utils.hpp"
 
 Response::Response() :
-	//! Hardcoding the version is not the right thing
 	_version("HTTP/1.1"),
 	_statusCode(0),
 	_statusMessage(""),
@@ -36,27 +35,26 @@ void Response::setBody(const std::string &body) {
 	this->_body = body;
 }
 
-// Helper function in C++98 for int to string
 static std::string intToString(int n) {
-    std::ostringstream ss;
-    ss << n;
-    return (ss.str());
+	std::ostringstream ss;
+	ss << n;
+	return (ss.str());
 }
 
 std::string Response::getHeadersAsString() const {
-    std::string h;
+	std::string h;
 	if (this->_statusCode == 0) {
 		throw HttpException(500);
 	}
-    h.reserve(512);
+	h.reserve(512);
 
-    h += _version + " " + intToString(_statusCode) + " " + _statusMessage + "\r\n";
+	h += _version + " " + intToString(_statusCode) + " " + _statusMessage + "\r\n";
 
 	std::map<std::string, std::string>::const_iterator it = _headers.begin();
-    while (it != _headers.end()) {
-        h += it->first + ": " + it->second + "\r\n";
+	while (it != _headers.end()) {
+		h += it->first + ": " + it->second + "\r\n";
 		++it;
-    }
-    h += "\r\n";
-    return (h);
+	}
+	h += "\r\n";
+	return (h);
 }
