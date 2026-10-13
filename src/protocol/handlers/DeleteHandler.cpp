@@ -18,41 +18,41 @@ static std::string getParentDirectory(const std::string &path) {
 }
 
 HandlerResult ResponseBuilder::handleDelete() {
-    (void)req;
-    HandlerResult result;
-    struct stat statbuf;
+	(void)req;
+	HandlerResult result;
+	struct stat statbuf;
 
-    if (stat(path.c_str(), &statbuf) == -1) {
-        if (errno == ENOENT) result.staticResponse = handleError(404);
-        else if (errno == EACCES) result.staticResponse = handleError(403);
-        else result.staticResponse = handleError(500);
-        return (result);
-    }
-    
-    if (S_ISDIR(statbuf.st_mode)) {
-        result.staticResponse = handleError(403);
-        return (result);
-    }
-    
-    std::string parentDir = getParentDirectory(path);
-    if (access(parentDir.c_str(), W_OK) == -1) {
-        result.staticResponse = handleError(403);
-        return (result);
-    }
-    
-    if (unlink(path.c_str()) == -1) {
-        if (errno == EACCES) result.staticResponse = handleError(403);
-        else result.staticResponse = handleError(500);
-        return (result);
-    }
-    
-    Response res;
-    res.setStatusCode(204);
-    res.setStatusMessage("No Content");
-    res.setHeader("Connection", "keep-alive");
-    //res.setHeader("Content-Length", "0"); to comply with RFC 7230
-    res.setBody("");
+	if (stat(path.c_str(), &statbuf) == -1) {
+		if (errno == ENOENT) result.staticResponse = handleError(404);
+		else if (errno == EACCES) result.staticResponse = handleError(403);
+		else result.staticResponse = handleError(500);
+		return (result);
+	}
+	
+	if (S_ISDIR(statbuf.st_mode)) {
+		result.staticResponse = handleError(403);
+		return (result);
+	}
+	
+	std::string parentDir = getParentDirectory(path);
+	if (access(parentDir.c_str(), W_OK) == -1) {
+		result.staticResponse = handleError(403);
+		return (result);
+	}
+	
+	if (unlink(path.c_str()) == -1) {
+		if (errno == EACCES) result.staticResponse = handleError(403);
+		else result.staticResponse = handleError(500);
+		return (result);
+	}
+	
+	Response res;
+	res.setStatusCode(204);
+	res.setStatusMessage("No Content");
+	res.setHeader("Connection", "keep-alive");
+	//res.setHeader("Content-Length", "0"); to comply with RFC 7230
+	res.setBody("");
 
-    result.staticResponse = res;
-    return (result);
+	result.staticResponse = res;
+	return (result);
 }

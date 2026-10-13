@@ -60,14 +60,14 @@ void RequestParser::process() {
 				processChunked();
 			}
 
-			// If the state has not changed, we need to read more data from the socket
+			//* If the state has not changed, we need to read more data from the socket
 			if (_state == prevState) {
 				break;
 			}
 		}
 	} catch (const HttpException &e) {
 		_state = ERROR;
-		throw; // Rethrow to the response block
+		throw;
 	}
 }
 
@@ -83,10 +83,8 @@ void RequestParser::processRequestLineState() {
 	std::string line;
 	while (_state == REQUEST_LINE) {
 		if (!parseLine(line)) {
-			//std::cout << "BUFFER1: " << buffer << std::endl;
 			return;
 		}
-		//std::cout << "BUFFER2: " << line << std::endl;
 		if (line.empty())
 			continue;
 
@@ -146,7 +144,7 @@ void RequestParser::processChunked() {
 				processChunkTrailerState();
 			}
 
-			// Exit if the state is final or has not changed (more of the buffer needs to be read)
+			//* Exit if the state is final or has not changed
 			if (_state == COMPLETE || _state == ERROR || _state == prevState) {
 				break;
 			}
@@ -199,8 +197,6 @@ bool RequestParser::parseHeaderLine(const std::string &line) {
 	std::string key = line.substr(0, colonPos);
 	std::string value = line.substr(colonPos + 1);
 	
-	// Note: If you declare isValidHeaderName in the hpp or in Utils, include it here. 
-	// I assume you keep it as a separate static function or in Utils.
 	if (!isValidHeaderName(key)) {
 		_state = ERROR;
 		throw HttpException(400);
@@ -406,7 +402,6 @@ unsigned long RequestParser::parseContentLength(const std::string &value) {
 }
 
 bool RequestParser::handleDuplicateHeader(const std::string &key, const std::string &value) {
-	// #15 y #23: Handling of duplicate headers
 	if (req.headers.find(key) != req.headers.end()) {
 		//* more than one HOST header
 		if (key == "host") {
@@ -417,7 +412,7 @@ bool RequestParser::handleDuplicateHeader(const std::string &key, const std::str
 			if (req.headers[key] != value) {
 				throw HttpException(400);
 			}
-			return (true); // If it is identical it can be tolerated and we skip the final assignment
+			return (true);
 		}
 	}
 	return (false);
@@ -428,9 +423,10 @@ bool RequestParser::parseLine(std::string &line) {
 	if (lf_pos == std::string::npos) {
 		return (false);
 	}
+	//* Invalid line break
 	if (lf_pos == 0 || _buffer[lf_pos - 1] != '\r') {
 		_state = ERROR;
-		throw HttpException(400); // Invalid line break (LF only) -> 400 Bad Request
+		throw HttpException(400);
 	}
 
 	line = _buffer.substr(0, lf_pos - 1);
@@ -439,18 +435,18 @@ bool RequestParser::parseLine(std::string &line) {
 }
 
 static bool isValidHeaderName(const std::string &name) {
-    if (name.empty()) 
+	if (name.empty()) 
 		return false;
-    const std::string separators = "()<>@,;:\\\"/[]?={} \t";
-    size_t i = 0;
+	const std::string separators = "()<>@,;:\\\"/[]?={} \t";
+	size_t i = 0;
 	size_t len = name.length();
 	while (i < len) {
-        unsigned char c = name[i];
-        if (c <= 32 || c >= 127 || separators.find(c) != std::string::npos)
-            return (false);
+		unsigned char c = name[i];
+		if (c <= 32 || c >= 127 || separators.find(c) != std::string::npos)
+			return (false);
 		++i;
-    }
-    return (true);
+	}
+	return (true);
 }
 
 std::string RequestParser::trim(const std::string &str) {
@@ -470,6 +466,6 @@ Request &RequestParser::getRequest() {
 }
 
 void RequestParser::reset() {
-    _state = REQUEST_LINE;
-    req = Request(); // Resets the request object (clears headers, body, uri, etc.)
+	_state = REQUEST_LINE;
+	req = Request();
 }

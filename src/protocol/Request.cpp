@@ -24,7 +24,7 @@ Request &Request::operator=(const Request &rhs) {
 		this->body = rhs.body;
 		this->chunkSize = rhs.chunkSize;
 		this->isComplete = rhs.isComplete;
-        this->errorCode = rhs.errorCode;
+		this->errorCode = rhs.errorCode;
 	}
 	return (*this);
 }

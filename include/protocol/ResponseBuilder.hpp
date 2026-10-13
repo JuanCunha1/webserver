@@ -7,11 +7,11 @@
 #include <vector>
 
 struct HandlerResult {
-    bool isCgi;
-    Response staticResponse;
-    CgiHandler *cgiHandler;
+	bool isCgi;
+	Response staticResponse;
+	CgiHandler *cgiHandler;
 
-    HandlerResult() : isCgi(false), cgiHandler(NULL) {}
+	HandlerResult() : isCgi(false), cgiHandler(NULL) {}
 };
 
 class ResponseBuilder {
@@ -25,9 +25,26 @@ class ResponseBuilder {
 		HandlerResult handlePost();
 		HandlerResult handleDelete();
 		Response serveStaticFile(const std::string &filePath);
+
+		// GET helpers
+		Response		statErrorToResponse(int err);
+		HandlerResult	handleDirectory();
+		std::string		resolveIndexPath() const;
+		Response		serveAutoindex();
+		Response		buildHtmlResponse(const std::string &html);
+		HandlerResult	handleRegularFile();
+		HandlerResult	launchCgi(const std::string &cgiBinary);
 		
 		bool shouldCloseConnection(int statusCode);
-		Response handlePostDirect();
+		
+		// POST helpers
+		HandlerResult	handleMultipart(const std::string &contentType);
+		std::string		resolveUploadDir() const;
+		HandlerResult	handleUrlEncoded();
+		Response		handlePostDirect();
+		std::string		resolveDirectTargetPath() const;
+		Response		buildPostResponse(int statusCode, const std::string &statusMsg,
+										const std::string &html);
 
 		bool	isCgiRequest();
 		bool	isCgiExtension(const std::string& ext, std::string& outCgiBinary);
@@ -40,13 +57,12 @@ class ResponseBuilder {
 	public:
 		ResponseBuilder(const Request &request, const ConfigLocation &location, const ConfigServer &server);
 		~ResponseBuilder();
-		//! To be able to use it in main I make it public
+
 		Response handleError(int errorCode);
 
 		static std::string getDefaultStatusMessage(int statusCode);
 
-		//! To be able to use it in server
 		static Response buildErrorResponse(int code, const std::string &msg);
-		//* This function will take care of assembling the response
+
 		HandlerResult buildResponse();
 };

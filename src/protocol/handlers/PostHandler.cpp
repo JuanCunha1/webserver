@@ -249,206 +249,252 @@ static bool parseAndSaveMultipart(const std::string &body, const std::string &bo
 
 //* (when it is text/plain) Saves the whole body in the file indicated by the URL
 Response ResponseBuilder::handlePostDirect() {
-    // 1. --- UPLOAD_STORE FIX ---
-    std::string targetFilePath = path; // Default: normal path (root + URI)
+	// 1. --- UPLOAD_STORE FIX ---
+	std::string targetFilePath = path; // Default: normal path (root + URI)
 
-    if (!loc.uploadStore.empty()) {
-        // Extract only the file name from the original URI (e.g. "/uploads/photo.png" -> "photo.png")
-        std::string uri = req.getUri();
-        std::string filename = "";
-        std::string::size_type pos = uri.find_last_of('/');
-        if (pos != std::string::npos) {
-            filename = uri.substr(pos + 1);
-        } else {
-            filename = uri;
-        }
+	if (!loc.uploadStore.empty()) {
+		// Extract only the file name from the original URI (e.g. "/uploads/photo.png" -> "photo.png")
+		std::string uri = req.getUri();
+		std::string filename = "";
+		std::string::size_type pos = uri.find_last_of('/');
+		if (pos != std::string::npos) {
+			filename = uri.substr(pos + 1);
+		} else {
+			filename = uri;
+		}
 
-        // Build the new path using the configured upload directory
-        targetFilePath = loc.uploadStore;
-        if (targetFilePath[targetFilePath.size() - 1] != '/') {
-            targetFilePath += "/";
-        }
-        targetFilePath += filename;
-    }
-    // -------------------------------
+		// Build the new path using the configured upload directory
+		targetFilePath = loc.uploadStore;
+		if (targetFilePath[targetFilePath.size() - 1] != '/') {
+			targetFilePath += "/";
+		}
+		targetFilePath += filename;
+	}
+	// -------------------------------
 
-    struct stat statbuf;
-    // 2. ATTENTION! We replace 'path.c_str()' with 'targetFilePath.c_str()' throughout the function
-    bool fileExisted = (stat(targetFilePath.c_str(), &statbuf) == 0);
+	struct stat statbuf;
+	// 2. ATTENTION! We replace 'path.c_str()' with 'targetFilePath.c_str()' throughout the function
+	bool fileExisted = (stat(targetFilePath.c_str(), &statbuf) == 0);
 
-    if (fileExisted && S_ISDIR(statbuf.st_mode)) {
-        return (handleError(403));
-    }
-    if (fileExisted && access(targetFilePath.c_str(), W_OK) == -1) {
-        return (handleError(403));
-    }
-    
-    // Open the file at targetFilePath
-    std::ofstream outFile(targetFilePath.c_str(), std::ios::out | std::ios::binary | std::ios::trunc);
-    if (!outFile.is_open()) {
-        return (handleError(500));
-    }
-    const std::string &body = req.getBody();
-    if (!body.empty()) {
-        outFile.write(body.data(), body.size());
-    }
-    outFile.close();
+	if (fileExisted && S_ISDIR(statbuf.st_mode)) {
+		return (handleError(403));
+	}
+	if (fileExisted && access(targetFilePath.c_str(), W_OK) == -1) {
+		return (handleError(403));
+	}
+	
+	// Open the file at targetFilePath
+	std::ofstream outFile(targetFilePath.c_str(), std::ios::out | std::ios::binary | std::ios::trunc);
+	if (!outFile.is_open()) {
+		return (handleError(500));
+	}
+	const std::string &body = req.getBody();
+	if (!body.empty()) {
+		outFile.write(body.data(), body.size());
+	}
+	outFile.close();
 
-    Response res;
-    if (!fileExisted) {
-        res.setStatusCode(201);
-        res.setStatusMessage("Created");
-        // The 'Location' header still returns the original URI, which is correct from the client's point of view
-        res.setHeader("Location", req.getUri());
+	Response res;
+	if (!fileExisted) {
+		res.setStatusCode(201);
+		res.setStatusMessage("Created");
+		// The 'Location' header still returns the original URI, which is correct from the client's point of view
+		res.setHeader("Location", req.getUri());
 
-        std::string responseBody = "<html><body><h1>201 Created</h1><p>Resource created successfully.</p></body></html>\n";
-        res.setHeader("Content-Type", "text/html");
-        res.setHeader("Content-Length", Utils::toString(responseBody.size()));
-        if (shouldCloseConnection(200)) {
-            res.setHeader("Connection", "close");
-        } else {
-            res.setHeader("Connection", "keep-alive");
-        }
-        res.setBody(responseBody);
-    } else {
-        res.setStatusCode(200);
-        res.setStatusMessage("OK");
+		std::string responseBody = "<html><body><h1>201 Created</h1><p>Resource created successfully.</p></body></html>\n";
+		res.setHeader("Content-Type", "text/html");
+		res.setHeader("Content-Length", Utils::toString(responseBody.size()));
+		if (shouldCloseConnection(200)) {
+			res.setHeader("Connection", "close");
+		} else {
+			res.setHeader("Connection", "keep-alive");
+		}
+		res.setBody(responseBody);
+	} else {
+		res.setStatusCode(200);
+		res.setStatusMessage("OK");
 
-        std::string responseBody = "<html><body><h1>200 OK</h1><p>Resource updated successfully.</p></body></html>\n";
-        res.setHeader("Content-Type", "text/html");
-        res.setHeader("Content-Length", Utils::toString(responseBody.size()));
-        if (shouldCloseConnection(200)) {
-            res.setHeader("Connection", "close");
-        } else {
-            res.setHeader("Connection", "keep-alive");
-        }
-        res.setBody(responseBody);
-    }
+		std::string responseBody = "<html><body><h1>200 OK</h1><p>Resource updated successfully.</p></body></html>\n";
+		res.setHeader("Content-Type", "text/html");
+		res.setHeader("Content-Length", Utils::toString(responseBody.size()));
+		if (shouldCloseConnection(200)) {
+			res.setHeader("Connection", "close");
+		} else {
+			res.setHeader("Connection", "keep-alive");
+		}
+		res.setBody(responseBody);
+	}
 
-    return (res);
+	return (res);
 }
 
+//* PhandlePost 
+
+// Orchestrator: CGI -> multipart -> urlencoded -> direct (raw body)
 HandlerResult ResponseBuilder::handlePost() {
-    HandlerResult result;
-
-    std::string ext = "";
-    std::string::size_type dotPos = path.rfind('.');
-    if (dotPos != std::string::npos) {
-        ext = path.substr(dotPos);
-    }
-
-    std::string cgiBinary;
-
-    // 1. Check whether it is a CGI extension (like .bla, .py, .php)
-    if (isCgiExtension(ext, cgiBinary)) {
-        
-        // 2. Check that the script/binary file exists
-        if (access(path.c_str(), F_OK) == -1) {
-            result.staticResponse = handleError(404);
-            return (result);
-        }
-
-        // 3. Check permissions depending on whether it is compiled or interpreted
-        if (cgiBinary.empty()) {
-            // It is a COMPILED CGI (e.g. ubuntu_cgi_tester with POST /youpi.bla)
-            if (access(path.c_str(), X_OK) == -1) {
-                result.staticResponse = handleError(403);
-                return (result);
-            }
-        } else {
-            // It is an INTERPRETED SCRIPT (e.g. script.py with POST /script.py)
-            if (access(path.c_str(), R_OK) == -1 || access(cgiBinary.c_str(), X_OK) == -1) {
-                result.staticResponse = handleError(403);
-                return (result);
-            }
-        }
-
-        // 4. Launch the CGI
-        result.isCgi = true;
-        result.cgiHandler = new CgiHandler();
-        
-        if (!result.cgiHandler->initCgi(req, path, cgiBinary)) {
-            delete result.cgiHandler;
-            result.isCgi = false;
-            result.staticResponse = handleError(500);
-        }
-        return (result); 
-    }
-
-    const std::string *contentType = req.getHeader("content-type");
-    if (contentType != NULL && contentType->find("multipart/form-data") != std::string::npos) {
-        std::string boundary = extractBoundary(*contentType);
-        std::vector<std::string> savedFilenames;
-        std::map<std::string, std::string> formFields;
-
-		// --- UPLOAD_STORE FIX HERE ---
-        // 1. Decide the destination directory
-        std::string targetDir = path; // Default: root + URI
-        
-        if (!loc.uploadStore.empty()) {
-            targetDir = loc.uploadStore; // If there is an upload_store, use that one
-            
-            // Optional: make sure it ends in '/' so concatenating the name does not fail
-            if (targetDir[targetDir.size() - 1] != '/') {
-                targetDir += "/";
-            }
-        }
-        // ---------------------------------
-
-        if (!parseAndSaveMultipart(req.getBody(), boundary, targetDir, savedFilenames, formFields)) {
-            result.staticResponse = handleError(400);
-            return (result);
-        }
-
-        Response res;
-        if (!savedFilenames.empty()) {
-            res.setStatusCode(201);
-            res.setStatusMessage("Created");
-            if (savedFilenames.size() == 1) {
-                std::string uri = req.getUri();
-                if (uri.empty() || uri[uri.size() - 1] != '/') uri += "/";
-                res.setHeader("Location", uri + savedFilenames[0]);
-            }
-        } else {
-            res.setStatusCode(200);
-            res.setStatusMessage("OK");
-        }
-
-        std::string msg = "<html><body><h1>Procesado correctamente</h1></body></html>\n";
-        res.setHeader("Content-Type", "text/html");
-        res.setHeader("Content-Length", Utils::toString(msg.size()));
-        if (shouldCloseConnection(200)) {
-			res.setHeader("Connection", "close");
-		} else {
-			res.setHeader("Connection", "keep-alive");
+	HandlerResult result;
+ 
+	std::string ext = "";
+	std::string::size_type dotPos = path.rfind('.');
+	if (dotPos != std::string::npos) {
+		ext = path.substr(dotPos);
+	}
+ 
+	std::string cgiBinary;
+ 
+	// 1. Check whether it is a CGI extension (like .bla, .py, .php)
+	if (isCgiExtension(ext, cgiBinary)) {
+		return (launchCgi(cgiBinary)); // Same function used by GET
+	}
+ 
+	const std::string *contentType = req.getHeader("content-type");
+	if (contentType != NULL && contentType->find("multipart/form-data") != std::string::npos) {
+		return (handleMultipart(*contentType));
+	}
+	else if (contentType != NULL && contentType->find("application/x-www-form-urlencoded") != std::string::npos) {
+		return (handleUrlEncoded());
+	}
+ 
+	result.staticResponse = handlePostDirect();
+	return (result);
+}
+ 
+// Builds a text/html response with the Connection header
+Response ResponseBuilder::buildPostResponse(int statusCode, const std::string &statusMsg,
+											const std::string &html) {
+	Response res;
+	res.setStatusCode(statusCode);
+	res.setStatusMessage(statusMsg);
+	res.setHeader("Content-Type", "text/html");
+	res.setHeader("Content-Length", Utils::toString(html.size()));
+	if (shouldCloseConnection(200)) {
+		res.setHeader("Connection", "close");
+	} else {
+		res.setHeader("Connection", "keep-alive");
+	}
+	res.setBody(html);
+	return (res);
+}
+ 
+/* ------------------------------- Multipart -------------------------------- */
+ 
+HandlerResult ResponseBuilder::handleMultipart(const std::string &contentType) {
+	HandlerResult result;
+	std::string boundary = extractBoundary(contentType);
+	std::vector<std::string> savedFilenames;
+	std::map<std::string, std::string> formFields;
+ 
+	std::string targetDir = resolveUploadDir();
+ 
+	if (!parseAndSaveMultipart(req.getBody(), boundary, targetDir, savedFilenames, formFields)) {
+		result.staticResponse = handleError(400);
+		return (result);
+	}
+ 
+	std::string msg = "<html><body><h1>Procesado correctamente</h1></body></html>\n";
+ 
+	if (savedFilenames.empty()) {
+		result.staticResponse = buildPostResponse(200, "OK", msg);
+		return (result);
+	}
+ 
+	Response res = buildPostResponse(201, "Created", msg);
+	if (savedFilenames.size() == 1) {
+		std::string uri = req.getUri();
+		if (uri.empty() || uri[uri.size() - 1] != '/') uri += "/";
+		res.setHeader("Location", uri + savedFilenames[0]);
+	}
+	result.staticResponse = res;
+	return (result);
+}
+ 
+// Destination directory: upload_store if configured, otherwise root + URI
+std::string ResponseBuilder::resolveUploadDir() const {
+	std::string targetDir = path; // Default: root + URI
+ 
+	if (!loc.uploadStore.empty()) {
+		targetDir = loc.uploadStore; // If there is an upload_store, use that one
+ 
+		// Make sure it ends in '/' so concatenating the name does not fail
+		if (targetDir[targetDir.size() - 1] != '/') {
+			targetDir += "/";
 		}
-        res.setBody(msg);
-        
-        result.staticResponse = res;
-        return (result);
-    }
-    else if (contentType != NULL && contentType->find("application/x-www-form-urlencoded") != std::string::npos) {
-        std::map<std::string, std::string> formFields;
-        parseUrlEncoded(req.getBody(), formFields);
-
-        Response res;
-        res.setStatusCode(200);
-        res.setStatusMessage("OK");
-
-        std::string msg = "<html><body><h1>Formulario procesado correctamente</h1></body></html>\n";
-        res.setHeader("Content-Type", "text/html");
-        res.setHeader("Content-Length", Utils::toString(msg.size()));
-        if (shouldCloseConnection(200)) {
-			res.setHeader("Connection", "close");
+	}
+	return (targetDir);
+}
+ 
+/* ------------------------------- URL-encoded ------------------------------ */
+ 
+HandlerResult ResponseBuilder::handleUrlEncoded() {
+	HandlerResult result;
+	std::map<std::string, std::string> formFields;
+	parseUrlEncoded(req.getBody(), formFields);
+ 
+	std::string msg = "<html><body><h1>Formulario procesado correctamente</h1></body></html>\n";
+	result.staticResponse = buildPostResponse(200, "OK", msg);
+	return (result);
+}
+ 
+/* ------------------------------ Direct (raw) ------------------------------ */
+ 
+//* (when it is text/plain) Saves the whole body in the file indicated by the URL
+Response ResponseBuilder::handlePostDirect() {
+	std::string targetFilePath = resolveDirectTargetPath();
+ 
+	struct stat statbuf;
+	bool fileExisted = (stat(targetFilePath.c_str(), &statbuf) == 0);
+ 
+	if (fileExisted && S_ISDIR(statbuf.st_mode)) {
+		return (handleError(403));
+	}
+	if (fileExisted && access(targetFilePath.c_str(), W_OK) == -1) {
+		return (handleError(403));
+	}
+ 
+	// Open the file at targetFilePath
+	std::ofstream outFile(targetFilePath.c_str(), std::ios::out | std::ios::binary | std::ios::trunc);
+	if (!outFile.is_open()) {
+		return (handleError(500));
+	}
+	const std::string &body = req.getBody();
+	if (!body.empty()) {
+		outFile.write(body.data(), body.size());
+	}
+	outFile.close();
+ 
+	if (!fileExisted) {
+		std::string responseBody = "<html><body><h1>201 Created</h1><p>Resource created successfully.</p></body></html>\n";
+		Response res = buildPostResponse(201, "Created", responseBody);
+		// The 'Location' header still returns the original URI, which is correct from the client's point of view
+		res.setHeader("Location", req.getUri());
+		return (res);
+	}
+ 
+	std::string responseBody = "<html><body><h1>200 OK</h1><p>Resource updated successfully.</p></body></html>\n";
+	return (buildPostResponse(200, "OK", responseBody));
+}
+ 
+// Target file: upload_store + file name of the URI if configured, otherwise root + URI
+std::string ResponseBuilder::resolveDirectTargetPath() const {
+	std::string targetFilePath = path; // Default: normal path (root + URI)
+ 
+	if (!loc.uploadStore.empty()) {
+		// Extract only the file name from the original URI (e.g. "/uploads/photo.png" -> "photo.png")
+		std::string uri = req.getUri();
+		std::string filename = "";
+		std::string::size_type pos = uri.find_last_of('/');
+		if (pos != std::string::npos) {
+			filename = uri.substr(pos + 1);
 		} else {
-			res.setHeader("Connection", "keep-alive");
+			filename = uri;
 		}
-        res.setBody(msg);
-        
-        result.staticResponse = res;
-        return (result);
-    }
-
-    result.staticResponse = handlePostDirect();
-    return (result);
+ 
+		// Build the new path using the configured upload directory
+		targetFilePath = loc.uploadStore;
+		if (targetFilePath[targetFilePath.size() - 1] != '/') {
+			targetFilePath += "/";
+		}
+		targetFilePath += filename;
+	}
+	return (targetFilePath);
 }
