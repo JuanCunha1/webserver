@@ -115,7 +115,7 @@ Socket *Server::findListeningSocket(int fd)
 void Server::run()
 {
 	while (g_running)
-    {
+	{
 		int result = poll(
 			&_pollFds[0],
 			_pollFds.size(),
@@ -136,7 +136,6 @@ void Server::run()
 			continue;
 		}
 		size_t i = 0;
-
 		while (i < _pollFds.size())
 		{
 			if (_pollFds[i].revents == 0)
@@ -144,31 +143,15 @@ void Server::run()
 				++i;
 				continue;
 			}
-			/*
-			// --- ADD THIS HERE ---
-        	for (size_t k = 0; k < _pollFds.size(); ++k) {
-           		if (_pollFds[k].revents != 0) {
-                	std::cout << "[POLL] FD " << _pollFds[k].fd << " despertó con revents: " << _pollFds[k].revents << std::endl;
-            	}
-       		}
-       		// -----------------------
-			*/
-
 			size_t oldSize = _pollFds.size();
-
 			handlePollEvent(i);
-
-			/*
-			if (_pollFds.size() < oldSize)
-				i++;
-			*/
 			if (_pollFds.size() < oldSize) {
-                // 'i' already points to the next correct element.
-            } 
-            // If the size is equal or GREATER (CGI pipes were added), we do advance.
-            else {
-                ++i;
-            }
+				// 'i' already points to the next correct element.
+			} 
+			// If the size is equal or GREATER (CGI pipes were added), we do advance.
+			else {
+				++i;
+			}
 		}
 		checkTimeouts();
 	}
@@ -211,8 +194,8 @@ void Server::handlePollEvent(size_t index)
 	short revents = _pollFds[index].revents;
 
 	/*
-    std::cout << "[ROUTER] Evaluando FD " << fd << " | ¿Es CGI?: " << (isCgiFd(fd) ? "SI" : "NO") << std::endl;
-    */
+	std::cout << "[ROUTER] Evaluando FD " << fd << " | ¿Es CGI?: " << (isCgiFd(fd) ? "SI" : "NO") << std::endl;
+	*/
 
 	if (isListeningSocket(fd))
 	{
@@ -285,149 +268,6 @@ void Server::handleClientEvent(size_t index)
 		handleClientWrite(index);
 }
 
-/*
-void Server::handleClientRead(size_t index)
-{
-	Client *client = findClient(_pollFds[index].fd);
-
-	if (client == NULL)
-	{
-		removeClient(index);
-		return;
-	}
-
-	int result = client->receive();
-
-	if (result == 0)
-	{
-		removeClient(index);
-		return;
-	}
-
-	// A: COMMENTED OUT TO ALLOW PIPELINING (BUG 3)
-	// if (result == -1)
-	// 	return;
-
-	if (result == -2)
-	{
-		removeClient(index);
-		return;
-	}
-
-	// I updated this part because it was insufficient when there was a parse error
-	// No response was being built
-	try
-	{
-		client->getParser().process();
-	}
-	catch (const HttpException &e)
-	{
-		std::cerr << "HTTP parse error: " << e.what() << " (Code: " << e.getStatusCode() << ")" << std::endl;
-
-		Response errorRes = ResponseBuilder::buildErrorResponse(e.getStatusCode(), e.what());
-		std::string responseString = errorRes.getHeadersAsString() + errorRes.getBody();
-
-		client->setResponse(responseString);
-
-		// Wake up poll() so it writes the response to the client
-		_pollFds[index].events |= POLLOUT;
-		return;
-	}
-	// for cases where it will not be a parse error (may be removable)
-	catch (const std::exception &e)
-	{
-		std::cerr << "Unknown parse error: " << e.what() << std::endl;
-		removeClient(index);
-		return;
-	}
-
-	if (client->getParser().getState() != RequestParser::COMPLETE) {
-		// A: Debug message
-		// std::cout << "DEBUG IS NON BLOCKING" << std::endl;
-		return;
-	}
-
-	const Request &request = client->getParser().getRequest();
-	// Ainhoa's code
-	// 1. Get the value of the "Host" header to pass it to findBestServer
-    // (Adjust 'getHeader' to the method name you use in your Request class)
-	const std::string *hostValue = request.getHeader("Host");
-	std::string hostHeader = hostValue != NULL ? *hostValue : "";
-
-    // Optional: Sometimes the Host header comes with the port (ej: "localhost:8080"). 
-    // If your config only stores "localhost", make sure to strip the ":port" from hostHeader.
-
-    // 2. Find the server (Replaces findServerConfig)
-    // NOTE: I assume Server holds the vector with all the servers (ej: _servers o _serverConfigs)
-    const ConfigServer *serverConfig = 
-        UrlMatcher::findBestServer(_serverConfigs, client->getServerPort(), hostHeader);
-
-    if (serverConfig == NULL)
-    {
-        std::cerr << "No server config for port "
-                  << client->getServerPort()
-                  << std::endl;
-        return; // Ideally a 400 Bad Request error should be returned here
-    }
-
-    // 3. Find the Location (Replaces findLocation)
-    const ConfigLocation *location = 
-        UrlMatcher::findBestLocation(*serverConfig, request.getUri());
-
-    if (location == NULL)
-    {
-        std::cerr << "No location for URI: "
-                  << request.getUri()
-                  << std::endl;
-        // If you want it to return 404 when there is no location, 
-        // you would have to instantiate the ResponseBuilder differently or send the response directly.
-        return; 
-    }
-
-	ResponseBuilder builder(request, *location, *serverConfig);
-
-	HandlerResult handlerResult = builder.buildResponse();
-
-	if (handlerResult.isCgi)
-	{
-		// Store the handler in the client
-		client->setCgiHandler(handlerResult.cgiHandler);
-		client->setState(Client::WAITING_FOR_CGI);
-
-		// Get the read and write FDs of the CgiHandler
-		int cgiReadFd = handlerResult.cgiHandler->getReadFd();
-		int cgiWriteFd = handlerResult.cgiHandler->getWriteFd();
-
-		// Add the read pipe to poll (POLLIN)
-		if (cgiReadFd != -1) {
-			struct pollfd pfd;
-			pfd.fd = cgiReadFd;
-			pfd.events = POLLIN;
-			pfd.revents = 0;
-			_pollFds.push_back(pfd);
-		}
-
-		// If it is a POST and there is a body, add the write pipe to poll (POLLOUT)
-		if (cgiWriteFd != -1 && !request.getBody().empty()) {
-			struct pollfd pfd;
-			pfd.fd = cgiWriteFd;
-			pfd.events = POLLOUT;
-			pfd.revents = 0;
-			_pollFds.push_back(pfd);
-		}
-		return;
-	}
-
-	std::string response;
-
-	response += handlerResult.staticResponse.getHeadersAsString();
-	response += handlerResult.staticResponse.getBody();
-
-	client->setResponse(response);
-
-	_pollFds[index].events |= POLLOUT;
-}
-*/
 void Server::handleClientRead(size_t index)
 {
 	Client *client = findClient(_pollFds[index].fd);
@@ -543,7 +383,7 @@ void Server::handleClientWrite(size_t index)
 	}
 	/*
 	std::cout << "[DEBUG HTTP] Intentando enviar " << client->getResponseBuffer().size() 
-          << " bytes al cliente FD " << client->getFd() << std::endl;
+		  << " bytes al cliente FD " << client->getFd() << std::endl;
 	*/
 	// a: Look at the buffer BEFORE sending it to know whether it contains a 4xx/5xx error
 	// or whether your teammate's ResponseBuilder explicitly set Connection: close
@@ -578,13 +418,11 @@ void Server::handleClientWrite(size_t index)
 		}
 		const Request &request = client->getParser().getRequest();
 		const std::string *connHeader = request.getHeader("connection");
-
 		if ((connHeader != NULL && *connHeader == "close") || (request.getVersion() == "HTTP/1.0" && (connHeader == NULL || *connHeader != "keep-alive")))
 		{
 			removeClient(index);
 			return;
 		}
-
 		_pollFds[index].events = POLLIN;
 		client->setState(Client::READING);
 		client->getParser().reset();
@@ -595,14 +433,6 @@ void Server::handleClientWrite(size_t index)
 	{
 		_pollFds[index].events |= POLLOUT; // A: |= OR for bits
 	}
-	/*
-	// We only listen again if we have already emptied the whole output buffer
-    if (client->hasDataToSend()) {
-        _pollFds[index].events |= POLLOUT; 
-    } else {
-        _pollFds[index].events = POLLIN; 
-    }
-	*/
 }
 
 Client *Server::findClient(int fd)
@@ -612,7 +442,6 @@ Client *Server::findClient(int fd)
 		if (_clients[i]->getFd() == fd)
 			return _clients[i];
 	}
-
 	return NULL;
 }
 
@@ -649,51 +478,14 @@ void Server::addClient(size_t socketIndex)
 		_sockets[socketIndex]->getPort(),
 		_serverConfigs[socketIndex].clientMaxBodySize
 	);
-
 	_clients.push_back(client);
-
 	struct pollfd clientPollFd;
-
 	clientPollFd.fd = clientFd;
 	clientPollFd.events = POLLIN;
 	clientPollFd.revents = 0;
-
 	_pollFds.push_back(clientPollFd);
 }
 
-/*
-void Server::checkTimeouts()
-{
-	std::time_t now = std::time(NULL);
-
-	size_t i = 0;
-
-	while (i < _clients.size())
-	{
-		if (!_clients[i]->isTimedOut(now, CLIENT_TIMEOUT))
-		{
-			++i;
-			continue;
-		}
-
-		int fd = _clients[i]->getFd();
-
-		std::cout << "Client timeout: "
-				  << fd
-				  << std::endl;
-
-		for (size_t j = 0; j < _pollFds.size(); ++j)
-		{
-			if (_pollFds[j].fd == fd)
-			{
-				removeClient(j);
-				break;
-			}
-		}
-	}
-}
-*/
-
 void Server::checkTimeouts()
 {
 	std::time_t now = std::time(NULL);
@@ -706,28 +498,22 @@ void Server::checkTimeouts()
 			++i;
 			continue;
 		}
-
 		int fd = _clients[i]->getFd();
 		Client::State state = _clients[i]->getState();
-		
 		// 1. Translate the state for logging
 		std::string stateStr;
 		if (state == Client::READING) stateStr = "WAITING_FOR_REQUEST";
 		else if (state == Client::WAITING_FOR_CGI) stateStr = "WAITING_FOR_CGI";
 		else stateStr = "READY_TO_SEND";
-
 		// 2. Structured and improved log
 		std::cout << "[WARN] Client timeout after " << CLIENT_TIMEOUT 
 				  << "s of inactivity. FD: " << fd 
 				  << ", Server Port: " << _clients[i]->getServerPort()
 				  << ", State: " << stateStr << std::endl;
-
 		// 3. Courtesy response 408 Request Timeout
 		Response errorRes = ResponseBuilder::buildErrorResponse(408, "Request Timeout");
 		std::string responseString = errorRes.getHeadersAsString() + errorRes.getBody();
-		
 		_clients[i]->setResponse(responseString);
-
 		// 4. Change the event to POLLOUT instead of removing the client.
 		// The handleClientWrite loop will send the 408 and close the connection gracefully.
 		for (size_t j = 0; j < _pollFds.size(); ++j)
@@ -738,69 +524,10 @@ void Server::checkTimeouts()
 				break;
 			}
 		}
-		
 		// Move to the next client (we no longer use removeClient here)
 		++i;
 	}
 }
-
-//! Not needed because we already use Ainhoa's
-/*
-ConfigServer *Server::findServerConfig(int port)
-{
-	for (size_t i = 0; i < _serverConfigs.size(); ++i)
-	{
-		if (_serverConfigs[i].port == port)
-			return &_serverConfigs[i];
-	}
-
-	return NULL;
-}
-
-ConfigLocation *Server::findLocation(ConfigServer &server,
-									 const std::string &uri)
-{
-	ConfigLocation *bestMatch = NULL;
-	size_t bestLength = 0;
-
-	for (size_t i = 0; i < server.locations.size(); ++i)
-	{
-		const ConfigLocation &location = server.locations[i];
-
-		if (location.path.empty())
-			continue;
-
-		bool match = false;
-
-		if (location.path == "/")
-		{
-			match = true;
-		}
-		else if (uri == location.path)
-		{
-			match = true;
-		}
-		else if (uri.compare(0, location.path.length(),
-								location.path) == 0)
-		{
-			if (location.path[location.path.length() - 1] == '/' ||
-				(uri.length() > location.path.length() && uri[location.path.length()] == '/')
-			)
-			{
-				match = true;
-			}
-		}
-
-		if (match && location.path.length() > bestLength)
-		{
-			bestMatch = &server.locations[i];
-			bestLength = location.path.length();
-		}
-	}
-
-	return bestMatch;
-}
-*/
 
 bool Server::isCgiFd(int fd) const
 {
@@ -835,11 +562,11 @@ void Server::handleCgiEvent(size_t index)
 	Client* client = getClientByCgiFd(fd);
 	/*
 	std::cout << "[DEBUG POLL] Evento en FD: " << fd 
-          << " | revents: " << revents 
-          << " (IN=" << (revents & POLLIN)
-          << ", OUT=" << (revents & POLLOUT)
-          << ", HUP=" << (revents & POLLHUP)
-          << ", ERR=" << (revents & POLLERR) << ")\n";
+		  << " | revents: " << revents 
+		  << " (IN=" << (revents & POLLIN)
+		  << ", OUT=" << (revents & POLLOUT)
+		  << ", HUP=" << (revents & POLLHUP)
+		  << ", ERR=" << (revents & POLLERR) << ")\n";
 	*/
 	if (client == NULL) {
 		close(fd);
@@ -879,26 +606,7 @@ void Server::handleCgiEvent(size_t index)
 	}
 
 	//* If there is data to read OR the CGI has closed the pipe (POLLHUP)
-    if (((revents & POLLIN) || (revents & POLLHUP)) && fd == cgi->getReadFd()) {
-        cgi->readFromCgi();
-        
-        if (cgi->isReadDone() || (revents & POLLHUP) || cgi->hasError()) {
-            Response res = cgi->buildCgiResponse();
-            client->setResponse(res.getHeadersAsString() + res.getBody());
-            client->setState(Client::READY_TO_SEND);
-            
-            for (size_t i = 0; i < _pollFds.size(); ++i) {
-                if (_pollFds[i].fd == client->getFd()) {
-                    _pollFds[i].events |= POLLOUT;
-                    break;
-                }
-            }
-            _pollFds.erase(_pollFds.begin() + index);
-        }
-    }
-	/*
-	// If poll says the CGI has data we can read (PIPE OUT)
-	if ((revents & POLLIN) && fd == cgi->getReadFd()) {
+	if (((revents & POLLIN) || (revents & POLLHUP)) && fd == cgi->getReadFd()) {
 		cgi->readFromCgi();
 		
 		if (cgi->isReadDone() || (revents & POLLHUP) || cgi->hasError()) {
@@ -912,9 +620,7 @@ void Server::handleCgiEvent(size_t index)
 					break;
 				}
 			}
-			//close(fd);
 			_pollFds.erase(_pollFds.begin() + index);
 		}
 	}
-	*/
 }

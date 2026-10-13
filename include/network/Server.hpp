@@ -28,7 +28,7 @@ class Server
 		std::vector<Socket *>		_sockets;
 		std::vector<Client *>		_clients;
 		std::vector<struct pollfd>	_pollFds;
-        std::vector<ConfigServer>   _serverConfigs;
+		std::vector<ConfigServer>   _serverConfigs;
 		
 		Server();
 		Server(const Server &other);
@@ -42,20 +42,20 @@ class Server
 		void	handleClientEvent(size_t index);
 		void	handleClientRead(size_t index);
 		void	handleClientWrite(size_t index);
-        void    handleServerError(size_t index);
+		void    handleServerError(size_t index);
 
 		bool	isCgiFd(int fd) const;
 		Client*	getClientByCgiFd(int fd);
 		void	handleCgiEvent(size_t index);
-    
+	
 		void	addListeningSocket(Socket *socket);
-        bool    isListeningSocket(int fd) const;
+		bool    isListeningSocket(int fd) const;
 		Socket	*findListeningSocket(int fd);
 		Client	*findClient(int fd);
 		
 		ConfigServer *findServerConfig(int port);
 		ConfigLocation *findLocation(ConfigServer &server,
-                             const std::string &uri);
+							 const std::string &uri);
 	public:
 		Server(std::vector<ConfigServer> serverConfigs);
 		~Server();

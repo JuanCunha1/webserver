@@ -40,8 +40,6 @@ Client::~Client()
 {
 	if (_fd != -1)
 		close(_fd);
-
-	//! I think I have to do it
 	delete _cgiHandler;
 	_cgiHandler = NULL;
 }
@@ -77,8 +75,8 @@ int Client::receive()
 	if (bytesRead == 0)
 		return 0;
 
-	if (errno == EAGAIN || errno == EWOULDBLOCK)
-		return -1;
+	if (errno == EAGAIN || errno == EWOULDBLOCK) // In this case what happened is server freezed for a moment
+		return -1; 
 
 	return -2;
 }
@@ -126,12 +124,12 @@ int Client::sendData()
 
 RequestParser &Client::getParser()
 {
-    return _parser;
+	return _parser;
 }
 
 const RequestParser &Client::getParser() const
 {
-    return _parser;
+	return _parser;
 }
 
 bool Client::isTimedOut(std::time_t now, int timeout) const
