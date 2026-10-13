@@ -4,94 +4,94 @@
 
 void ConfigParser::_bracesChecker()
 {
-    int balanced = 0;
+	int balanced = 0;
 
-    for (size_t i = 0; i < _tokens.size(); ++i)
-    {
-        if (_tokens[i] == "{")
-        {
-            balanced++;
-        }
-        else if (_tokens[i] == "}")
-        {
-            balanced--;
-        }
-        
-        if (balanced < 0)
-        {
-            throw std::runtime_error("Error: Incorrect braces");
-        }
-    }
-    if (balanced != 0)
-    {
-        throw std::runtime_error("Error: Incorrect braces");
-    }
+	for (size_t i = 0; i < _tokens.size(); ++i)
+	{
+		if (_tokens[i] == "{")
+		{
+			balanced++;
+		}
+		else if (_tokens[i] == "}")
+		{
+			balanced--;
+		}
+		
+		if (balanced < 0)
+		{
+			throw std::runtime_error("Error: Incorrect braces");
+		}
+	}
+	if (balanced != 0)
+	{
+		throw std::runtime_error("Error: Incorrect braces");
+	}
 }
 
 void ConfigParser::_notReadingCommentsInConfigFile(std::string& line)
 {
-    size_t pos = line.find('#');
-    
-    if (pos != std::string::npos)
-    {
-        line = line.substr(0, pos);
-    }
+	size_t pos = line.find('#');
+	
+	if (pos != std::string::npos)
+	{
+		line = line.substr(0, pos);
+	}
 }
 
 void ConfigParser::_readFileAndTokenize(std::ifstream& file)
 {
-    std::string line;
-    
-    while (std::getline(file, line))
-    {
-        _notReadingCommentsInConfigFile(line);
-        size_t start = 0;
-        std::string auxSpacedLine = "";
+	std::string line;
+	
+	while (std::getline(file, line))
+	{
+		_notReadingCommentsInConfigFile(line);
+		size_t start = 0;
+		std::string auxSpacedLine = "";
 
-        for (size_t i = 0; i < line.size(); ++i)
-        {
-            if (line[i] == ';' || line[i] == '{' || line[i] == '}')
-            {
-                auxSpacedLine += " ";
-                auxSpacedLine += line[i];
-                auxSpacedLine += " ";
-            }
-            else
-            {
-                auxSpacedLine += line[i];
-            }
-        }
-        line = auxSpacedLine;
-        while (true)
-        {
-            start = line.find_first_not_of(" \t\r\n", start);
-            
-            if (start == std::string::npos)
-            {
-                break;
-            }
+		for (size_t i = 0; i < line.size(); ++i)
+		{
+			if (line[i] == ';' || line[i] == '{' || line[i] == '}')
+			{
+				auxSpacedLine += " ";
+				auxSpacedLine += line[i];
+				auxSpacedLine += " ";
+			}
+			else
+			{
+				auxSpacedLine += line[i];
+			}
+		}
+		line = auxSpacedLine;
+		while (true)
+		{
+			start = line.find_first_not_of(" \t\r\n", start);
+			
+			if (start == std::string::npos)
+			{
+				break;
+			}
 
-            size_t end = line.find_first_of(" \t\r\n", start);
-            if (end == std::string::npos)
-            {
-                _tokens.push_back(line.substr(start));
-                break;
-            }
-            else
-            {
-                _tokens.push_back(line.substr(start, end - start));
-                start = end;
-            }
-        }
-    }
+			size_t end = line.find_first_of(" \t\r\n", start);
+			if (end == std::string::npos)
+			{
+				_tokens.push_back(line.substr(start));
+				break;
+			}
+			else
+			{
+				_tokens.push_back(line.substr(start, end - start));
+				start = end;
+			}
+		}
+	}
 }
 
 void ConfigParser::_openFile(std::ifstream& file, const std::string& filename)
 {
-    file.open(filename.c_str()); // c_str for "translating" to C
-    
-    if (!file.is_open())
-    {
-        throw std::runtime_error("Error: Cannot open file " + filename);
-    }
+	file.open(filename.c_str()); // c_str for "translating" to C
+	
+	if (!file.is_open())
+	{
+		throw std::runtime_error("Error: Cannot open file " + filename);
+	}
 }

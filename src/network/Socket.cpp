@@ -46,33 +46,6 @@ void Socket::create()
 	}
 }
 
-// A: prohibited functions here
-/*void Socket::bindSocket()
-{
-	struct sockaddr_in address;
-
-	std::memset(&address, 0, sizeof(address));
-
-	address.sin_family = AF_INET;
-	if (_host == "localhost")
-    address.sin_addr.s_addr = inet_addr("127.0.0.1");
-	else if (_host == "0.0.0.0")
-		address.sin_addr.s_addr = htonl(INADDR_ANY);
-	else
-		address.sin_addr.s_addr = inet_addr(_host.c_str());
-	address.sin_port = htons(_port);
-
-	if (bind(_fd,
-			reinterpret_cast<struct sockaddr *>(&address),
-			sizeof(address)) == -1)
-	{
-		std::cerr << "Error: bind() failed: "
-				  << std::strerror(errno) << std::endl;
-		throw std::runtime_error("bind() failed");
-	}
-}
-*/
-
 void Socket::bindSocket()
 {
 	struct addrinfo hints;
