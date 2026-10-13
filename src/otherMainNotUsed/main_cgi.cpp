@@ -75,11 +75,11 @@ int main() {
 		res = ResponseBuilder::buildResponse(req, targetPath, loc);
 
 		if (res.isCgi == false) {
-			std::cout << "--- RESPUESTA ESTÁTICA ---" << std::endl;
+			std::cout << "--- STATIC ANSWER ---" << std::endl;
 			std::cout << res.staticResponse.getHeadersAsString() << res.staticResponse.getBody() << std::endl;
 		} 
 		else {
-			std::cout << "--- CGI DETECTADO: INICIANDO BUCLE DE PRUEBA ---" << std::endl;
+			std::cout << "--- CGI DETECTED: TRYING TEST LOOP ---" << std::endl;
 				
 			// Multiplexer simulation: we force the calls until it finishes
 			while (!res.cgiHandler->isReadDone() && !res.cgiHandler->hasError()) {
@@ -94,9 +94,9 @@ int main() {
 			}
 
 			if (res.cgiHandler->hasError()) {
-				std::cout << "ERROR: El CGI ha fallado durante la ejecución." << std::endl;
+				std::cout << "ERROR: CGI failed during execution." << std::endl;
 			} else {
-				std::cout << "--- CGI COMPLETADO: CONSTRUYENDO RESPUESTA ---" << std::endl;
+				std::cout << "--- CGI COMPLETED: BUILDING ANSWER ---" << std::endl;
 				Response cgiRes = res.cgiHandler->buildCgiResponse();
 					
 				std::cout << "Status code: " << cgiRes.getStatusCode() << std::endl;
