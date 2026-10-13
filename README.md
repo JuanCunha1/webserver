@@ -101,94 +101,137 @@ Once the response is fully sent using `send()`, the connection is either closed 
 
 # 🧪 **Evaluation Tests & Commands**
 
-**Set up multiple websites on different interfaces and ports.**
-config1.conf
-http://127.0.0.1:8080/index.html
-http://127.0.0.1:8081/index.html
-http://127.0.0.2:8080/index.html
+## 1. Multiple Websites (Interfaces & Ports)
+> **Config:** `config1.conf`
 
-curl http://127.0.0.1:8080
-curl http://127.0.0.1:8081
-curl http://127.0.0.2:8080
+* `http://127.0.0.1:8080/index.html`
+* `http://127.0.0.1:8081/index.html`
+* `http://127.0.0.2:8080/index.html`
 
-**Set up a default error page (try modifying the 404 error page).**
-config2.conf
-http://localhost:8080/asdasd
+```bash
+curl [http://127.0.0.1:8080](http://127.0.0.1:8080)
+curl [http://127.0.0.1:8081](http://127.0.0.1:8081)
+curl [http://127.0.0.2:8080](http://127.0.0.2:8080)
+```
 
-curl http://localhost:8080/asdasd
+---
 
-**Limit the size of the client request body (use: curl -X POST -H "Content-Type: plain/text" --data "BODY IS HERE write something shorter or longer than body limit").**
-config2.conf
-curl -X POST -H "Content-Type: plain/text" --data "BODY" http://localhost:8080/prueba.txt
--v (before -X to see body)
+## 2. Server Configuration & Routing
+> **Config:** `config2.conf`
 
-**Set up routes on a server to different directories.**
-config2.conf
-curl -v http://127.0.0.1:8080/
-curl -v http://127.0.0.1:8080/camisetas/camiseta_roja.html
+### Default Error Page (404)
+```bash
+curl -v http://localhost:8080/asdasd
+```
 
-**Set up a default file to serve when requesting a directory**
-config2.conf
-curl -v http://127.0.0.1:8080/camisetas/
+### Limit Client Request Body
+```bash
+curl -v -X POST -H "Content-Type: plain/text" --data "BODY IS HERE write something shorter or longer than body limit" http://localhost:8080/prueba.txt
+```
 
-**Set up a list of accepted methods for a specific route (e.g., try DELETE something with and without permission).**
-config2.conf
-Con nc o…
-curl -v -X DELETE http://127.0.0.1:8080/camisetas/camiseta_roja.html
+### Set Routes to Different Directories
+```bash
+curl -v [http://127.0.0.1:8080/](http://127.0.0.1:8080/)
+curl -v [http://127.0.0.1:8080/camisetas/camiseta_roja.html](http://127.0.0.1:8080/camisetas/camiseta_roja.html)
+```
 
+### Default File for Directory Request
+```bash
+curl -v [http://127.0.0.1:8080/camisetas/](http://127.0.0.1:8080/camisetas/)
+```
 
-**CHECK CGI**
-curl “http://127.0.0.1:8080/buscar_vuelo.py?origen=BCN”
+### Accepted Methods for Specific Route
+```bash
+curl -v -X DELETE [http://127.0.0.1:8080/camisetas/camiseta_roja.html](http://127.0.0.1:8080/camisetas/camiseta_roja.html)
+```
 
-**Script to test Infinite (infinite.py):**
-curl http://127.0.0.1:8080/infinite.py
+---
 
-**Script to test Lento (lento.py):**
-curl http://127.0.0.1:8080/lento.py
+## 3. CGI Tests
+> **Config:** `config2.conf`
 
-**Script to test POST (post_test.py):**
-curl -v -X POST -H "Content-Type: application/x-www-form-urlencoded" --data "usuario=guillem&proyecto=webserv" http://127.0.0.1:8080/post_test.py
+### Query Parameters
+```bash
+curl "[http://127.0.0.1:8080/buscar_vuelo.py?origen=BCN](http://127.0.0.1:8080/buscar_vuelo.py?origen=BCN)"
+```
 
-**Script to test Relative Paths (relative_path.py):**
-curl -v http://127.0.0.1:8080/relative_path.py
+### Infinite Loop & Timeout
+```bash
+# Infinite loop script
+curl [http://127.0.0.1:8080/infinite.py](http://127.0.0.1:8080/infinite.py)
 
-**Script with Execution Error (error_crash.py):**
-curl -v http://127.0.0.1:8080/error_crash.py
+# Slow execution script
+curl [http://127.0.0.1:8080/lento.py](http://127.0.0.1:8080/lento.py)
+```
 
-**TEST TO CREAT WEBPAGE**
+### POST Data, Relative Paths & Execution Errors
+```bash
+# POST request to CGI
+curl -v -X POST -H "Content-Type: application/x-www-form-urlencoded" --data "usuario=guillem&proyecto=webserv" [http://127.0.0.1:8080/post_test.py](http://127.0.0.1:8080/post_test.py)
+
+# Relative path execution
+curl -v [http://127.0.0.1:8080/relative_path.py](http://127.0.0.1:8080/relative_path.py)
+
+# Script execution crash (500 error)
+curl -v [http://127.0.0.1:8080/error_crash.py](http://127.0.0.1:8080/error_crash.py)
+```
+
+---
+
+## 4. Webpage Creation Test
+```bash
 mkdir -p www/prueba
 echo "<h1>Prueba superada</h1>" > www/prueba/index.html
+```
 
+---
 
-**Using telnet, curl, and pre-prepared files, demonstrate that the**
-**following features function correctly:**
+## 5. HTTP Methods & File Management
+Demonstrate GET, POST, and DELETE requests, file uploads/retrievals, and appropriate status codes.
 
-**GET, POST, and DELETE requests should work.**
-**UNKNOWN requests should not result in a crash.**
-For every test, you should receive the appropriate status code.
-Upload some files to the server and retrieve them.
+### Interactive GET Test (Netcat)
+```bash
+nc -C localhost 8080
+```
 
-**Test GET:**
-With nc:
-nc -C interface port
-Example: nc -C localhost 8080
-
-**Tests POST and DELETE:**
+### Text File Upload & Lifecycle
+```bash
+# 1. Create local test file
 echo "Contenido de prueba para el servidor" > test.txt
-curl -v -X POST --data-binary "@test.txt" -H "Content-Type: text/plain" http://127.0.0.1:8080/uploads/test.txt
-curl -v http://127.0.0.1:8080/uploads/test.txt
-curl -v -X DELETE http://127.0.0.1:8080/uploads/test.txt
-curl -v http://127.0.0.1:8080/uploads/test.txt
 
-**Upload image:**
-curl -v -X POST --data-binary "@www/tests/imagen.jpg" -H "Content-Type: image/jpeg" http://127.0.0.1:8080/uploads/image.jpg
-Download in local:
-curl -v http://127.0.0.1:8080/uploads/image.jpg -o descarga.jpg
+# 2. Upload file via POST
+curl -v -X POST --data-binary "@test.txt" -H "Content-Type: text/plain" [http://127.0.0.1:8080/uploads/test.txt](http://127.0.0.1:8080/uploads/test.txt)
 
-**SIEGE & STRESS TEST**
-siege -b -c 100 -t 20s http://127.0.0.1:8080/empty.html
+# 3. Retrieve uploaded file
+curl -v [http://127.0.0.1:8080/uploads/test.txt](http://127.0.0.1:8080/uploads/test.txt)
 
-**Antes/durante/despues (para medir fds):**
+# 4. Delete uploaded file
+curl -v -X DELETE [http://127.0.0.1:8080/uploads/test.txt](http://127.0.0.1:8080/uploads/test.txt)
+
+# 5. Verify deletion (404 expected)
+curl -v [http://127.0.0.1:8080/uploads/test.txt](http://127.0.0.1:8080/uploads/test.txt)
+```
+
+### Image Upload & Download
+```bash
+# Upload image
+curl -v -X POST --data-binary "@www/tests/imagen.jpg" -H "Content-Type: image/jpeg" [http://127.0.0.1:8080/uploads/image.jpg](http://127.0.0.1:8080/uploads/image.jpg)
+
+# Download locally
+curl -v [http://127.0.0.1:8080/uploads/image.jpg](http://127.0.0.1:8080/uploads/image.jpg) -o descarga.jpg
+```
+
+---
+
+## 6. Stress Testing & Resource Leaks
+
+### Siege Load Test
+```bash
+siege -b -c 100 -t 20s [http://127.0.0.1:8080/empty.html](http://127.0.0.1:8080/empty.html)
+```
+
+### Open File Descriptors (FDs) Monitoring
+Run before, during, and after stress test to detect leaks:
+```bash
 lsof -p $(pgrep webserv) | wc -l
-
-
+```
