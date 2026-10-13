@@ -139,6 +139,7 @@ Response ResponseBuilder::handleError(int errorCode) {
     
     std::string customBody = getCustomErrorPage(errorCode);
 
+    //std::cout << "Generating error: 404 para la ruta: " << ResponseBuilder::path << std::endl;
     if (customBody.empty()) {
         Response res = buildErrorResponse(errorCode, statusMsg);
         if (!shouldCloseConnection(errorCode)) {
