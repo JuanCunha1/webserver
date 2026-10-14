@@ -278,12 +278,11 @@ void Server::handleClientRead(size_t index)
 	}
 
 	int result = client->receive();
-	if (result == 0 || result == -2)
+	if (result <= 0)
 	{
 		removeClient(index);
 		return;
 	}
-	// result == -1 (EAGAIN): no new bytes, but we process whatever there is
 	processRequest(index);
 }
 
