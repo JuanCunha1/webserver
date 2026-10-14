@@ -58,27 +58,14 @@ int Client::receive()
 {
 	char buffer[4096];
 
-	int bytesRead = recv(
-		_fd,
-		buffer,
-		sizeof(buffer),
-		0
-	);
+	int bytesRead = recv(_fd, buffer, sizeof(buffer), 0);
 
-	if (bytesRead > 0)
-	{
-		_parser.append(std::string(buffer, bytesRead));
-		_lastActivity = std::time(NULL);
-		return bytesRead;
-	}
+	if (bytesRead <= 0)
+		return 0;   // connection closed or error: the server will drop the client
 
-	if (bytesRead == 0)
-		return 0;
-
-	if (errno == EAGAIN || errno == EWOULDBLOCK) // In this case what happened is server freezed for a moment
-		return -1; 
-
-	return -2;
+	_parser.append(std::string(buffer, bytesRead));
+	_lastActivity = std::time(NULL);
+	return bytesRead;
 }
 
 void Client::setResponse(const std::string &response)
@@ -98,28 +85,17 @@ int Client::sendData()
 
 	ssize_t bytesSent = send(
 		_fd,
-		//_responseBuffer.c_str(), // A: Commented to be able to manage images and binary data
-		_responseBuffer.data(), // Use data() to handle binary data correctly
+		_responseBuffer.data(), // data() to handle binary data correctly
 		_responseBuffer.size(),
 		0
 	);
 
-	if (bytesSent > 0)
-	{
-		_responseBuffer.erase(0, bytesSent);
-		_lastActivity = std::time(NULL);
-		return static_cast<int>(bytesSent);
-	}
+	if (bytesSent <= 0)
+		return -1;   // error: the server will drop the client
 
-	if (bytesSent == -1)
-	{
-		if (errno == EAGAIN || errno == EWOULDBLOCK)
-			return 0;
-
-		return -1;
-	}
-
-	return -1;
+	_responseBuffer.erase(0, bytesSent);
+	_lastActivity = std::time(NULL);
+	return static_cast<int>(bytesSent);
 }
 
 RequestParser &Client::getParser()
