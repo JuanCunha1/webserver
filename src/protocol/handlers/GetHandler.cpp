@@ -69,34 +69,26 @@ std::string generateAutoindex(const std::string& directoryPath, const std::strin
 		 << "<body style=\"font-family: monospace;\">\r\n"
 		 << "<h1>Index of " << requestUri << "</h1>\r\n<hr>\r\n<pre>\r\n";
 
-	//* Iterate over all the elements of the folder
 	while ((ent = readdir(dir)) != NULL) {
 		std::string filename = ent->d_name;
 
-		// Skip the current directory "." to keep it cleaner, 
 		if (filename == ".") {
 			continue;
 		}
-
-		// Ensure the base URI ends in '/' to concatenate the link properly
 		std::string href = requestUri;
 		if (!href.empty() && href[href.length() - 1] != '/') {
 			href += "/";
 		}
 		href += filename;
-
-		// Add a visual '/' if the element is a directory
 		std::string displayName = filename;
 		if (ent->d_type == DT_DIR) {
 			displayName += "/";
 		}
-
 		html << "<a href=\"" << href << "\">" << displayName << "</a>\n";
 	}
 
 	closedir(dir);
 	html << "</pre>\r\n<hr>\r\n</body>\r\n</html>\r\n";
-
 	return html.str();
 }
 
@@ -111,7 +103,6 @@ Response ResponseBuilder::buildHtmlResponse(const std::string &html) {
 }
 
 //! HANDLE GET
-// Orchestrator: stat the path and dispatch to the right handler
 HandlerResult ResponseBuilder::handleGet() {
 	HandlerResult result;
 	struct stat statbuf;
@@ -143,7 +134,6 @@ Response ResponseBuilder::statErrorToResponse(int err) {
 }
  
 //! DIRECTORIES 
-// index file -> autoindex -> 403
 HandlerResult ResponseBuilder::handleDirectory() {
 	HandlerResult result;
  
@@ -163,7 +153,7 @@ HandlerResult ResponseBuilder::handleDirectory() {
 	return (result);
 }
  
-// Build "<path>/<indexFile>" (index.html by default)
+// Builds index.html by deafult
 std::string ResponseBuilder::resolveIndexPath() const {
 	std::string indexPath = path;
 	if (!indexPath.empty() && indexPath[indexPath.size() - 1] != '/') {
@@ -183,7 +173,6 @@ Response ResponseBuilder::serveAutoindex() {
 }
  
 //! REGULAR FILES 
-// CGI -> launchCgi(); otherwise static file
 HandlerResult ResponseBuilder::handleRegularFile() {
 	HandlerResult result;
  

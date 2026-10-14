@@ -125,7 +125,6 @@ void Server::run()
 		{
 			if (errno == EINTR)
 			{
-				// Poll was interrupted by a signal (like SIGINT), continue the loop to check g_running
 				continue;
 			}
 			throw std::runtime_error("poll() failed");
@@ -148,7 +147,7 @@ void Server::run()
 			if (_pollFds.size() < oldSize) {
 				// 'i' already points to the next correct element.
 			} 
-			// If the size is equal or GREATER (CGI pipes were added), we do advance.
+			// If the size is equal or GREATER (CGI pipes were added), advance.
 			else {
 				++i;
 			}
@@ -313,7 +312,7 @@ void Server::processRequest(size_t index)
 	}
 
 	if (client->getParser().getState() != RequestParser::COMPLETE)
-		return;   // bytes missing, keep going with POLLIN
+		return;
 
 	const Request &request = client->getParser().getRequest();
 	const std::string *hostValue = request.getHeader("Host");
@@ -472,6 +471,13 @@ void Server::addClient(size_t socketIndex)
 	if (clientFd == -1)
 		return;
 
+	if (fcntl(clientFd, F_SETFL, O_NONBLOCK) == -1
+		|| fcntl(clientFd, F_SETFD, FD_CLOEXEC) == -1)
+	{
+		close(clientFd);
+		return;
+	}
+
 	Client *client = new Client(
 		clientFd,
 		_sockets[socketIndex]->getPort(),
@@ -499,22 +505,20 @@ void Server::checkTimeouts()
 		}
 		int fd = _clients[i]->getFd();
 		Client::State state = _clients[i]->getState();
-		// 1. Translate the state for logging
+		// Translate the state for logging
 		std::string stateStr;
 		if (state == Client::READING) stateStr = "WAITING_FOR_REQUEST";
 		else if (state == Client::WAITING_FOR_CGI) stateStr = "WAITING_FOR_CGI";
 		else stateStr = "READY_TO_SEND";
-		// 2. Structured and improved log
+		// Structured and improved log
 		std::cout << "[WARN] Client timeout after " << CLIENT_TIMEOUT 
 				  << "s of inactivity. FD: " << fd 
 				  << ", Server Port: " << _clients[i]->getServerPort()
 				  << ", State: " << stateStr << std::endl;
-		// 3. Courtesy response 408 Request Timeout
 		Response errorRes = ResponseBuilder::buildErrorResponse(408, "Request Timeout");
 		std::string responseString = errorRes.getHeadersAsString() + errorRes.getBody();
 		_clients[i]->setResponse(responseString);
-		// 4. Change the event to POLLOUT instead of removing the client.
-		// The handleClientWrite loop will send the 408 and close the connection gracefully.
+		// Change the event to POLLOUT
 		for (size_t j = 0; j < _pollFds.size(); ++j)
 		{
 			if (_pollFds[j].fd == fd)
@@ -523,7 +527,6 @@ void Server::checkTimeouts()
 				break;
 			}
 		}
-		// Move to the next client (we no longer use removeClient here)
 		++i;
 	}
 }
@@ -588,7 +591,6 @@ void Server::handleCgiEvent(size_t index)
 				break;
 			}
 		}
-		//close(fd);  because killcgi already closes them
 		_pollFds.erase(_pollFds.begin() + index);
 		return;
 	}
@@ -597,9 +599,7 @@ void Server::handleCgiEvent(size_t index)
 	if ((revents & POLLOUT) && fd == cgi->getWriteFd()) {
 		cgi->writeToCgi();
 		if (cgi->isWriteDone() || cgi->hasError()) {
-			//close(fd);
 			_pollFds.erase(_pollFds.begin() + index);
-			// We do not wake the client yet because we are still waiting to read from the CGI
 		}
 		return;
 	}

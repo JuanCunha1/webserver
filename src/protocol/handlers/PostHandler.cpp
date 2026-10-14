@@ -26,10 +26,9 @@ static std::string urlDecode(const std::string &str) {
 			char *endPtr;
 			long decodedChar = std::strtol(hexStr.c_str(), &endPtr, 16);
 			
-			// If the conversion was successful
 			if (*endPtr == '\0') {
 				result += static_cast<char>(decodedChar);
-				i += 2; // Skip the two hexadecimal characters
+				i += 2;
 			} else {
 				result += str[i];
 			}
@@ -55,7 +54,6 @@ static void parseUrlEncoded(const std::string &body, std::map<std::string, std::
 			std::string value = urlDecode(pair.substr(eqPos + 1));
 			formFields[key] = value;
 		} else {
-			// Case where there is a key but no value (e.g. "key&other=2")
 			std::string key = urlDecode(pair);
 			formFields[key] = "";
 		}
@@ -68,7 +66,6 @@ static void parseUrlEncoded(const std::string &body, std::map<std::string, std::
 	}
 }
 
-//! Form upload, several files, or image with several parameters
 //* The boundary is a text string that the browser/client makes up
 //* to know where one part ends and the next begins.
 static std::string extractBoundary(const std::string &contentType) {
@@ -84,7 +81,6 @@ static std::string extractBoundary(const std::string &contentType) {
 	return ("--" + boundary);
 }
 
-//* Extracts the file name (if any) of each part of the body
 static std::string extractSanitizedFilename(const std::string &partHeaders) {
 	std::string key = "filename=\"";
 	size_t pos = partHeaders.find(key);
@@ -107,17 +103,14 @@ static std::string extractSanitizedFilename(const std::string &partHeaders) {
 	return (filename);
 }
 
-//* Extracts the field name (name) of each part of the body
-//* Ignores matches with 'filename="'
 static std::string extractFieldName(const std::string &partHeaders) {
 	std::string key = "name=\"";
 	size_t pos = 0;
 	
 	while ((pos = partHeaders.find(key, pos)) != std::string::npos) {
-		// Check that we are not matching inside "filename="
 		if (pos >= 4 && partHeaders.compare(pos - 4, 4, "file") == 0) {
 			pos += key.length();
-			continue; // It is a filename, keep searching
+			continue; 
 		}
 		
 		pos += key.length();
@@ -130,7 +123,6 @@ static std::string extractFieldName(const std::string &partHeaders) {
 	return ("");
 }
 
-//* Checks whether a file path already exists on disk
 static bool fileExists(const std::string &path) {
 	struct stat buffer;
 	return (stat(path.c_str(), &buffer) == 0);
@@ -141,7 +133,6 @@ static std::string resolveUniqueFilename(const std::string &dir, const std::stri
 	std::string baseName = originalFilename;
 	std::string extension = "";
 
-	//* Check the dot is not the first character, as in .ignore
 	size_t dotPos = originalFilename.find_last_of('.');
 	if (dotPos != std::string::npos && dotPos != 0) {
 		baseName = originalFilename.substr(0, dotPos);
@@ -152,7 +143,6 @@ static std::string resolveUniqueFilename(const std::string &dir, const std::stri
 	std::string fullPath = dir + candidateName;
 	int counter = 1;
 
-	//* If it already exists, for example _1
 	while (fileExists(fullPath)) {
 		std::ostringstream ss;
 		ss << baseName << "_" << counter << extension;
@@ -164,7 +154,6 @@ static std::string resolveUniqueFilename(const std::string &dir, const std::stri
 	return (candidateName);
 }
 
-//* Opens a file with a unique name and writes the data
 static bool saveFileToDisk(const std::string &dir, std::string &filename, const std::string &data) {
 	std::string cleanDir = dir;
 	if (cleanDir.empty() || cleanDir[cleanDir.size() - 1] != '/') {
@@ -186,9 +175,8 @@ static bool saveFileToDisk(const std::string &dir, std::string &filename, const 
 	return (true);
 }
 
-//* Walks through the HTTP body looking for the boundaries (each block)
-//* Extracts the headers and data, and saves the detected files to disk
-//* Stores the file names in a vector
+//* Process multipart/form-formdata body
+//* Extract upload files and save form variables
 static bool parseAndSaveMultipart(const std::string &body, const std::string &boundary,
 									const std::string &uploadDir,
 									std::vector<std::string> &savedFilenames,
@@ -220,7 +208,8 @@ static bool parseAndSaveMultipart(const std::string &body, const std::string &bo
 
 		std::string partHeaders = body.substr(currentPos, headerEnd - currentPos);
 
-		size_t dataStart = headerEnd + 4; // Skip "\r\n\r\n"
+		 //* Skip "\r\n\r\n"
+		size_t dataStart = headerEnd + 4;
 		size_t nextBoundary = body.find(boundary, dataStart);
 		if (nextBoundary == std::string::npos) {
 			break;
@@ -248,7 +237,6 @@ static bool parseAndSaveMultipart(const std::string &body, const std::string &bo
 }
 
 //! HANDLE POST
-// Orchestrator: CGI -> multipart -> urlencoded -> direct (raw body)
 HandlerResult ResponseBuilder::handlePost() {
 	HandlerResult result;
  
@@ -260,11 +248,9 @@ HandlerResult ResponseBuilder::handlePost() {
  
 	std::string cgiBinary;
  
-	// 1. Check whether it is a CGI extension (like .bla, .py, .php)
 	if (isCgiExtension(ext, cgiBinary)) {
-		return (launchCgi(cgiBinary)); // Same function used by GET
+		return (launchCgi(cgiBinary));
 	}
- 
 	const std::string *contentType = req.getHeader("content-type");
 	if (contentType != NULL && contentType->find("multipart/form-data") != std::string::npos) {
 		return (handleMultipart(*contentType));
@@ -277,7 +263,6 @@ HandlerResult ResponseBuilder::handlePost() {
 	return (result);
 }
  
-// Builds a text/html response with the Connection header
 Response ResponseBuilder::buildPostResponse(int statusCode, const std::string &statusMsg,
 											const std::string &html) {
 	Response res;
@@ -325,14 +310,13 @@ HandlerResult ResponseBuilder::handleMultipart(const std::string &contentType) {
 	return (result);
 }
  
-// Destination directory: upload_store if configured, otherwise root + URI
+// Upload_store or root + URI if not exsit
 std::string ResponseBuilder::resolveUploadDir() const {
-	std::string targetDir = path; // Default: root + URI
+	std::string targetDir = path;
  
 	if (!loc.uploadStore.empty()) {
-		targetDir = loc.uploadStore; // If there is an upload_store, use that one
+		targetDir = loc.uploadStore;
  
-		// Make sure it ends in '/' so concatenating the name does not fail
 		if (targetDir[targetDir.size() - 1] != '/') {
 			targetDir += "/";
 		}
@@ -352,7 +336,6 @@ HandlerResult ResponseBuilder::handleUrlEncoded() {
 }
  
 //! DIRECT 
-//* (when it is text/plain) Saves the whole body in the file indicated by the URL
 Response ResponseBuilder::handlePostDirect() {
 	std::string targetFilePath = resolveDirectTargetPath();
  
@@ -366,7 +349,6 @@ Response ResponseBuilder::handlePostDirect() {
 		return (handleError(403));
 	}
  
-	// Open the file at targetFilePath
 	std::ofstream outFile(targetFilePath.c_str(), std::ios::out | std::ios::binary | std::ios::trunc);
 	if (!outFile.is_open()) {
 		return (handleError(500));
@@ -380,7 +362,6 @@ Response ResponseBuilder::handlePostDirect() {
 	if (!fileExisted) {
 		std::string responseBody = "<html><body><h1>201 Created</h1><p>Resource created successfully.</p></body></html>\n";
 		Response res = buildPostResponse(201, "Created", responseBody);
-		// The 'Location' header still returns the original URI, which is correct from the client's point of view
 		res.setHeader("Location", req.getUri());
 		return (res);
 	}
@@ -389,12 +370,11 @@ Response ResponseBuilder::handlePostDirect() {
 	return (buildPostResponse(200, "OK", responseBody));
 }
  
-// Target file: upload_store + file name of the URI if configured, otherwise root + URI
+// Upload_store + file name or root + URI
 std::string ResponseBuilder::resolveDirectTargetPath() const {
-	std::string targetFilePath = path; // Default: normal path (root + URI)
+	std::string targetFilePath = path;
  
 	if (!loc.uploadStore.empty()) {
-		// Extract only the file name from the original URI (e.g. "/uploads/photo.png" -> "photo.png")
 		std::string uri = req.getUri();
 		std::string filename = "";
 		std::string::size_type pos = uri.find_last_of('/');
@@ -404,7 +384,6 @@ std::string ResponseBuilder::resolveDirectTargetPath() const {
 			filename = uri;
 		}
  
-		// Build the new path using the configured upload directory
 		targetFilePath = loc.uploadStore;
 		if (targetFilePath[targetFilePath.size() - 1] != '/') {
 			targetFilePath += "/";
