@@ -27,9 +27,8 @@ std::string readFile(const std::string &path) {
 	file.seekg(0, std::ios::beg);
 	if (size <= 0)
 	{
-		return (""); // Empty file
+		return ("");
 	}
-	// Initialize the buffer (std::string) with the exact size
 	std::string buffer(size, '\0');
 	// Read all binary bytes directly into the buffer
 	if (file.read(&buffer[0], size)) {
@@ -38,9 +37,6 @@ std::string readFile(const std::string &path) {
 	return ("");
 }
 
-
-//! Both functions are to reduce lines in the handlers
-//! Implement in the rest of the code
 Response ResponseBuilder::serveStaticFile(const std::string &filePath) {
 	Response res;
 	std::string fileContent = readFile(filePath);
@@ -49,7 +45,6 @@ Response ResponseBuilder::serveStaticFile(const std::string &filePath) {
 	res.setStatusMessage("OK");
 	res.setHeader("Content-Type", MimeTypes::getType(filePath));
 	res.setHeader("Content-Length", Utils::toString(fileContent.size()));
-	//! look at how to do it depending on whether the client stays (keep-alive) or closes
 	if (shouldCloseConnection(200)) {
 		res.setHeader("Connection", "close");
 	} else {
@@ -158,9 +153,7 @@ HandlerResult ResponseBuilder::handleDirectory() {
 		result.staticResponse = serveStaticFile(indexPath);
 		return (result);
 	}
- 
-	// Autoindex: if there is no index file and the location has
-	// "autoindex on", generate an HTML listing of the directory
+
 	if (loc.autoindex) {
 		result.staticResponse = serveAutoindex();
 		return (result);
@@ -203,12 +196,12 @@ HandlerResult ResponseBuilder::handleRegularFile() {
  
 	std::string cgiBinary;
  
-	// Check whether the extension belongs to a CGI according to the .conf
+	// Check extension in the .conf for the CGI
 	if (isCgiExtension(ext, cgiBinary)) {
 		return (launchCgi(cgiBinary));
 	}
  
-	// --- STATIC FILE HANDLING ---
+	// Static file
 	if (access(path.c_str(), R_OK) == -1) {
 		result.staticResponse = handleError(403);
 		return (result);
@@ -227,25 +220,22 @@ HandlerResult ResponseBuilder::launchCgi(const std::string &cgiBinary) {
 	}
  
 	if (cgiBinary.empty() || cgiBinary == "\"\"" || cgiBinary == "''") {
-		// It is a COMPILED CGI (e.g. ubuntu_cgi_tester)
-		// To run it directly, it NEEDS execute permission (X_OK)
+		// COMPILED CGI needs execute permission (X_OK)
 		if (access(path.c_str(), X_OK) == -1) {
-			std::cerr << "Fallo access(X_OK) compilado. Error: " << strerror(errno) << std::endl;
+			std::cerr << "Fail access(X_OK) to compiled. Error: " << strerror(errno) << std::endl;
 			result.staticResponse = handleError(403);
 			return (result);
 		}
 	} else {
-		std::cout << "-> Evaluando como SCRIPT INTERPRETADO (Python/PHP)" << std::endl;
-		// It is an INTERPRETED SCRIPT (e.g. Python)
-		// The script needs read permission (R_OK) for the interpreter to read it
+		// INTERPRETED SCRIPT script needs read permission (R_OK) for the interpreter to read it
 		if (access(path.c_str(), R_OK) == -1) {
-			std::cerr << "Fallo access(R_OK) al script. Error: " << strerror(errno) << std::endl;
+			std::cerr << "Fail access(R_OK) to script. Error: " << strerror(errno) << std::endl;
 			result.staticResponse = handleError(403);
 			return (result);
 		}
 		// And the interpreter (Python) needs execute permission (X_OK)
 		if (access(cgiBinary.c_str(), X_OK) == -1) {
-			std::cerr << "Fallo access(X_OK) al interprete [" << cgiBinary << "]. Error: " << strerror(errno) << std::endl;
+			std::cerr << "Fail access(X_OK) to interpret [" << cgiBinary << "]. Error: " << strerror(errno) << std::endl;
 			result.staticResponse = handleError(403);
 			return (result);
 		}

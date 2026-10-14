@@ -35,7 +35,6 @@ std::string Utils::urlDecode(const std::string& str) {
 
     for (size_t i = 0; i < str.length(); ++i) {
         if (str[i] == '%') {
-            // Make sure at least 2 characters remain after the '%'
             if (i + 2 < str.length()) {
                 int value;
                 std::istringstream is(str.substr(i + 1, 2));
@@ -43,13 +42,12 @@ std::string Utils::urlDecode(const std::string& str) {
                     result += static_cast<char>(value);
                     i += 2;
                 } else {
-                    result += '%'; // If the conversion fails, leave it as is
+                    result += '%';
                 }
             } else {
                 result += '%';
             }
         } else if (str[i] == '+') {
-            // '+' in a URL == space
             result += ' ';
         } else {
             result += str[i];

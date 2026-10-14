@@ -33,11 +33,9 @@ bool ResponseBuilder::shouldCloseConnection(int statusCode) {
 }
 
 //! BUILD RESPONSE
-//! Orchestrator: redirection -> allowed method -> resolve path -> dispatch
 HandlerResult ResponseBuilder::buildResponse( ) {
 	HandlerResult result;
 
-	//* Redirection handling
 	if (!loc.returnRedirections.empty()) {
 		result.staticResponse = handleRedirection();
 		return (result);
@@ -77,7 +75,6 @@ Response ResponseBuilder::handleRedirection() {
 	return (res);
 }
 
-// If the location has no allowed methods configured, everything is allowed
 bool ResponseBuilder::isMethodAllowed(const std::string &method) const {
 	if (loc.allowedMethods.empty()) {
 		return (true);
@@ -90,7 +87,7 @@ bool ResponseBuilder::isMethodAllowed(const std::string &method) const {
 	return (false);
 }
 
-// Builds the 'path' member: locationRoot + normalized URI (without the location prefix)
+// locationRoot + normalized URI (without the location prefix)
 // Returns false if the URI tries to escape the root (path traversal)
 bool ResponseBuilder::resolvePath() {
 	path = loc.locationRoot;
@@ -108,12 +105,10 @@ bool ResponseBuilder::resolvePath() {
 	cleanUri = Utils::urlDecode(cleanUri);
 	cleanUri = normalizeUri(cleanUri);
 
-	// If normalization returns empty but the original URI was not, it's a traversal attempt
 	if (cleanUri.empty() && !req.getUri().empty()) {
 		return (false);
 	}
 
-	// NOW, on the already clean URI, strip the location prefix
 	std::string uri = stripLocationPrefix(cleanUri);
 
 	if (!uri.empty() && uri[0] != '/')
@@ -127,7 +122,7 @@ bool ResponseBuilder::resolvePath() {
 	return (true);
 }
 
-// "/uploads/photo.png" with location "/uploads" -> "/photo.png"
+// "tranform /uploads/photo.png" to "/photo.png"
 std::string ResponseBuilder::stripLocationPrefix(const std::string &uri) const {
 	if (loc.path != "/" && uri.compare(0, loc.path.length(), loc.path) == 0) {
 		return (uri.substr(loc.path.length()));
@@ -150,6 +145,7 @@ HandlerResult ResponseBuilder::dispatchMethod(const std::string &method) {
 }
 
 //! CGI
+//! isCgiRequest no esta en uso actualmente
 bool ResponseBuilder::isCgiRequest() {
 	std::string::size_type dotPos = path.rfind('.');
 	if (dotPos == std::string::npos) {
@@ -195,12 +191,12 @@ std::string ResponseBuilder::normalizeUri(const std::string& uri) {
 
 		if (part == "..") {
 			if (!parts.empty()) {
-				parts.pop_back(); // Remove the previous valid folder
+				parts.pop_back();
 			} else {
-				return ""; // Path Traversal attempt blocked
+				return "";
 			}
 		} else if (!part.empty() && part != ".") {
-			parts.push_back(part); // Store the valid directory
+			parts.push_back(part);
 		}
 
 		if (end == std::string::npos) break;
