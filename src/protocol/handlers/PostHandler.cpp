@@ -247,89 +247,7 @@ static bool parseAndSaveMultipart(const std::string &body, const std::string &bo
 	return (!savedFilenames.empty() || !formFields.empty());
 }
 
-//* (when it is text/plain) Saves the whole body in the file indicated by the URL
-Response ResponseBuilder::handlePostDirect() {
-	// 1. --- UPLOAD_STORE FIX ---
-	std::string targetFilePath = path; // Default: normal path (root + URI)
-
-	if (!loc.uploadStore.empty()) {
-		// Extract only the file name from the original URI (e.g. "/uploads/photo.png" -> "photo.png")
-		std::string uri = req.getUri();
-		std::string filename = "";
-		std::string::size_type pos = uri.find_last_of('/');
-		if (pos != std::string::npos) {
-			filename = uri.substr(pos + 1);
-		} else {
-			filename = uri;
-		}
-
-		// Build the new path using the configured upload directory
-		targetFilePath = loc.uploadStore;
-		if (targetFilePath[targetFilePath.size() - 1] != '/') {
-			targetFilePath += "/";
-		}
-		targetFilePath += filename;
-	}
-	// -------------------------------
-
-	struct stat statbuf;
-	// 2. ATTENTION! We replace 'path.c_str()' with 'targetFilePath.c_str()' throughout the function
-	bool fileExisted = (stat(targetFilePath.c_str(), &statbuf) == 0);
-
-	if (fileExisted && S_ISDIR(statbuf.st_mode)) {
-		return (handleError(403));
-	}
-	if (fileExisted && access(targetFilePath.c_str(), W_OK) == -1) {
-		return (handleError(403));
-	}
-	
-	// Open the file at targetFilePath
-	std::ofstream outFile(targetFilePath.c_str(), std::ios::out | std::ios::binary | std::ios::trunc);
-	if (!outFile.is_open()) {
-		return (handleError(500));
-	}
-	const std::string &body = req.getBody();
-	if (!body.empty()) {
-		outFile.write(body.data(), body.size());
-	}
-	outFile.close();
-
-	Response res;
-	if (!fileExisted) {
-		res.setStatusCode(201);
-		res.setStatusMessage("Created");
-		// The 'Location' header still returns the original URI, which is correct from the client's point of view
-		res.setHeader("Location", req.getUri());
-
-		std::string responseBody = "<html><body><h1>201 Created</h1><p>Resource created successfully.</p></body></html>\n";
-		res.setHeader("Content-Type", "text/html");
-		res.setHeader("Content-Length", Utils::toString(responseBody.size()));
-		if (shouldCloseConnection(200)) {
-			res.setHeader("Connection", "close");
-		} else {
-			res.setHeader("Connection", "keep-alive");
-		}
-		res.setBody(responseBody);
-	} else {
-		res.setStatusCode(200);
-		res.setStatusMessage("OK");
-
-		std::string responseBody = "<html><body><h1>200 OK</h1><p>Resource updated successfully.</p></body></html>\n";
-		res.setHeader("Content-Type", "text/html");
-		res.setHeader("Content-Length", Utils::toString(responseBody.size()));
-		if (shouldCloseConnection(200)) {
-			res.setHeader("Connection", "close");
-		} else {
-			res.setHeader("Connection", "keep-alive");
-		}
-		res.setBody(responseBody);
-	}
-
-	return (res);
-}
-
-//* PhandlePost 
-
+//! HANDLE POST
 // Orchestrator: CGI -> multipart -> urlencoded -> direct (raw body)
 HandlerResult ResponseBuilder::handlePost() {
 	HandlerResult result;
@@ -376,8 +294,7 @@ Response ResponseBuilder::buildPostResponse(int statusCode, const std::string &s
 	return (res);
 }
  
-/* ------------------------------- Multipart -------------------------------- */
- 
+//! MULTIPART 
 HandlerResult ResponseBuilder::handleMultipart(const std::string &contentType) {
 	HandlerResult result;
 	std::string boundary = extractBoundary(contentType);
@@ -423,8 +340,7 @@ std::string ResponseBuilder::resolveUploadDir() const {
 	return (targetDir);
 }
  
-/* ------------------------------- URL-encoded ------------------------------ */
- 
+//! URL ENCODED 
 HandlerResult ResponseBuilder::handleUrlEncoded() {
 	HandlerResult result;
 	std::map<std::string, std::string> formFields;
@@ -435,8 +351,7 @@ HandlerResult ResponseBuilder::handleUrlEncoded() {
 	return (result);
 }
  
-/* ------------------------------ Direct (raw) ------------------------------ */
- 
+//! DIRECT 
 //* (when it is text/plain) Saves the whole body in the file indicated by the URL
 Response ResponseBuilder::handlePostDirect() {
 	std::string targetFilePath = resolveDirectTargetPath();

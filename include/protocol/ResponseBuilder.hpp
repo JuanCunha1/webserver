@@ -21,6 +21,13 @@ class ResponseBuilder {
 		ConfigServer	server;
 		std::string		path;
 
+		// buildResponse helpers
+		Response		handleRedirection();
+		bool			isMethodAllowed(const std::string &method) const;
+		bool			resolvePath();
+		std::string		stripLocationPrefix(const std::string &uri) const;
+		HandlerResult	dispatchMethod(const std::string &method);
+
 		HandlerResult handleGet();
 		HandlerResult handlePost();
 		HandlerResult handleDelete();

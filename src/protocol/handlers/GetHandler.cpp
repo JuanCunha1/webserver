@@ -10,7 +10,7 @@
 #include <unistd.h>
 #include <dirent.h>
 #include <cerrno>
-#include <cstring> // For strerror
+#include <cstring>
 
 std::string readFile(const std::string &path) {
 	std::ifstream file(path.c_str(), std::ios::in | std::ios::binary);
@@ -105,9 +105,17 @@ std::string generateAutoindex(const std::string& directoryPath, const std::strin
 	return html.str();
 }
 
-//* HandleGet
+Response ResponseBuilder::buildHtmlResponse(const std::string &html) {
+    Response res;
+    res.setStatusCode(200);
+    res.setStatusMessage("OK");
+    res.setHeader("Content-Type", "text/html");
+    res.setHeader("Content-Length", Utils::toString(html.size()));
+    res.setBody(html);
+    return (res);
+}
 
-
+//! HANDLE GET
 // Orchestrator: stat the path and dispatch to the right handler
 HandlerResult ResponseBuilder::handleGet() {
 	HandlerResult result;
@@ -139,8 +147,7 @@ Response ResponseBuilder::statErrorToResponse(int err) {
 	return (handleError(500));
 }
  
-/* ------------------------------ Directories ------------------------------- */
- 
+//! DIRECTORIES 
 // index file -> autoindex -> 403
 HandlerResult ResponseBuilder::handleDirectory() {
 	HandlerResult result;
@@ -182,8 +189,7 @@ Response ResponseBuilder::serveAutoindex() {
 	return (buildHtmlResponse(autoindexHtml));
 }
  
-/* ------------------------------ Regular files ----------------------------- */
- 
+//! REGULAR FILES 
 // CGI -> launchCgi(); otherwise static file
 HandlerResult ResponseBuilder::handleRegularFile() {
 	HandlerResult result;
@@ -245,7 +251,7 @@ HandlerResult ResponseBuilder::launchCgi(const std::string &cgiBinary) {
 		}
 	}
  
-	// --- CGI EXECUTION ---
+	//* CGI execution
 	result.isCgi = true;
 	result.cgiHandler = new CgiHandler();
  

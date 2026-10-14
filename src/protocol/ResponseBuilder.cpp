@@ -32,6 +32,7 @@ bool ResponseBuilder::shouldCloseConnection(int statusCode) {
 	return (false);
 }
 
+//! BUILD RESPONSE
 //! Orchestrator: redirection -> allowed method -> resolve path -> dispatch
 HandlerResult ResponseBuilder::buildResponse( ) {
 	HandlerResult result;
@@ -107,10 +108,12 @@ bool ResponseBuilder::resolvePath() {
 	cleanUri = Utils::urlDecode(cleanUri);
 	cleanUri = normalizeUri(cleanUri);
 
+	// If normalization returns empty but the original URI was not, it's a traversal attempt
 	if (cleanUri.empty() && !req.getUri().empty()) {
 		return (false);
 	}
 
+	// NOW, on the already clean URI, strip the location prefix
 	std::string uri = stripLocationPrefix(cleanUri);
 
 	if (!uri.empty() && uri[0] != '/')
@@ -146,6 +149,7 @@ HandlerResult ResponseBuilder::dispatchMethod(const std::string &method) {
 	return (result);
 }
 
+//! CGI
 bool ResponseBuilder::isCgiRequest() {
 	std::string::size_type dotPos = path.rfind('.');
 	if (dotPos == std::string::npos) {
@@ -179,6 +183,7 @@ bool ResponseBuilder::isCgiExtension(const std::string& ext, std::string& outCgi
 	return false;
 }
 
+//! UTILS
 //* Cleans the ./ and resolves the ../
 std::string ResponseBuilder::normalizeUri(const std::string& uri) {
 	std::vector<std::string> parts;
